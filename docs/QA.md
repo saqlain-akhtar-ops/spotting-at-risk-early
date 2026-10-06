@@ -1,6 +1,6 @@
 # Submission release checks — 6 October 2026
 
-Production settings are validated, streamed request limits cover bodies without Content-Length, root responses carry frontend security headers, and /api/ready checks the database. Empty databases now export all ten analytical table headers safely. The final complete suite passed: **19 tests in 65.98 seconds**, with one dependency deprecation warning. Live checks on the restarted server confirmed /api/health, /api/ready, React asset references and the frontend script policy.
+Production settings are validated, streamed request limits cover bodies without Content-Length, root responses carry frontend security headers, and /api/ready checks the database. Empty databases now export all ten analytical table headers safely. The final complete suite passed: **23 tests**, with one dependency deprecation warning. Live checks on the restarted server confirmed /api/health, /api/ready, React asset references and the frontend script policy.
 
 The earlier React production bundle and 480-student server render passed. Browser visual/click/mobile QA remains unverified for that version. Docker, MySQL, HTTPS infrastructure, SMTP delivery and native Power BI have not been run here. The submitted ZIP excludes operational databases, credentials, uploads and installed dependencies.
 
@@ -66,3 +66,6 @@ Browser verification showed the live fetch timestamp advancing automatically fro
 The complete isolated backend suite passes: 15 tests in 58.76 seconds. This covers category rules, authorization, support, submissions, reports, previews, data quality, saved academic updates and live Power BI table feeds. One dependency deprecation warning remains in FastAPI's TestClient.
 
 The React production bundle compiles. A separate React server-render check using all 480 students from the running authenticated API passes without React warnings; empty results, missing academic values and escaped student names are covered. These checks do not prove browser interactions, animation or layout. The browser tool rejected local preview access under its URL policy, so this version has not received visual or mobile QA. Earlier screenshots represent the prior JavaScript dashboard.
+
+
+Hosted verification on 6 October 2026 passed readiness, 480 students, 5,684 assessments, live feeds, class filtering, role scopes and persistent private upload/download checks. At Risk chart filtering changed the visible student count from 480 to 96. See [Vercel verification](VERCEL-README.md).

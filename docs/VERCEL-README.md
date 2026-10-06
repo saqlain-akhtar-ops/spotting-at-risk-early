@@ -1,5 +1,7 @@
 # Vercel hosted demonstration
 
+Live URL: **https://spotting-at-risk-early.vercel.app/**. Verified on 6 October 2026 against deployment commit `3578b36`.
+
 The hosted application uses Vercel's Python/FastAPI runtime and a separate Neon PostgreSQL database. Local development continues to use the dedicated MySQL database on the laptop. These databases do not synchronize automatically.
 
 ## Architecture
@@ -29,5 +31,7 @@ Check `/api/ready`, sign in, inspect dashboard counts, filter charts and create/
 New commits to the connected GitHub main branch trigger deployment. Schema upgrades run during builds; do not make destructive migrations against shared data without a backup and review. Preview deployments share this demo database unless separate branching is configured.
 
 The local suite has 23 passing checks, including cloud configuration, upload persistence, authorization and bounded dashboard queries. Institutional SSO, distributed login throttling, malware scanning, load testing, backup restoration and native Power BI validation remain separate work.
+
+The hosted checks confirmed database readiness, 480 students, 5,684 assessment rows, class filtering, administrator/teacher/student/parent scopes, the authenticated Power Query feed, and a private uploaded file downloaded in a fresh session. Parents and an unrelated teacher received HTTP 403 for that file. The interactive dashboard category selection changed the displayed group from 480 to 96 At Risk students. A clearly labelled synthetic deployment-verification assignment and submission remain in the demo as evidence.
 
 Official references: [Vercel FastAPI](https://vercel.com/docs/frameworks/backend/fastapi), [Python runtime](https://vercel.com/docs/functions/runtimes/python), [Hobby plan](https://vercel.com/docs/plans/hobby).

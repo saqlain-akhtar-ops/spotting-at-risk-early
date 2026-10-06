@@ -4,7 +4,7 @@
 
 A working REST application that helps teachers spot academic decline early, explain the evidence, arrange support, and review student progress. The React dashboard is connected to a Python/FastAPI backend and relational database. Power BI receives the same data through CSV snapshots or authenticated REST feeds.
 
-The included submission uses synthetic records. It is ready to run as a local demonstration. Production configuration and deployment files are supplied, but this release is not a certified or deployed institutional production system. Native Power BI artifacts remain drafts until validated in Desktop.
+The included submission uses synthetic records. It is ready to run as a local demonstration. A synthetic demonstration is deployed at https://spotting-at-risk-early.vercel.app/. This release is not a certified institutional production system. Native Power BI artifacts remain drafts until validated in Desktop.
 
 For separate explanations of the technologies and implementation process, open the [documentation index](docs/README.md). It links to the backend, frontend, database, Power BI, security and project-process READMEs.
 
@@ -229,9 +229,10 @@ See [QA evidence](docs/QA.md), [requirement coverage](docs/IMPLEMENTATION.md), [
 
 Production mode refuses demo seeding, insecure cookies, wildcard hosts, an implicit database URL and existing demonstration accounts. Configure a dedicated database, trusted HTTPS proxy, persistent storage and institutional user/access onboarding. Use tools/create_admin.py to provision the first administrator interactively. Environment templates are not loaded automatically; set their values in the process environment or deployment secret manager.
 
-SMTP is in preview mode. Microsoft SSO, institutional onboarding, shared rate limiting for replicas, malware scanning, load testing, tested backup restoration and native Power BI validation remain deployment work. Versioned migrations were applied and verified on the dedicated local MySQL database. Browser tooling blocked local preview access for the new React version, so its click interactions, animations and mobile layout have not been visually verified. Docker deployment has not been executed here.
+SMTP is in preview mode. Microsoft SSO, institutional onboarding, shared rate limiting for replicas, malware scanning, load testing, tested backup restoration and native Power BI validation remain deployment work. Versioned migrations were applied and verified on the dedicated local MySQL database. The hosted React dashboard was visually verified and category filtering was checked. Mobile layout and animation timing have not received full visual validation. Docker deployment has not been executed here.
 
 The submission therefore demonstrates the complete implemented academic-support workflow and provides deployment controls, while clearly separating tested behavior from external production validation.
 
 
 See [Vercel hosted demonstration](docs/VERCEL-README.md) for the separate Neon database, private cloud accounts and serverless storage configuration.
+
