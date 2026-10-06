@@ -9,7 +9,7 @@ args=parser.parse_args()
 OUT=ROOT/'deliverables'/Path(args.output).name
 OUT.parent.mkdir(exist_ok=True)
 folders=['backend','frontend','tools','tests','sources','docs','powerbi','.github','database','analytics/powerquery','analytics/model-draft']
-files=['Dockerfile','compose.yaml','.dockerignore','.gitattributes','.env.production.example','requirements-runtime.txt','package.json','package-lock.json','alembic.ini','README.md','requirements.txt','run.py','Start-Project.ps1','.env.example','.gitignore','analytics/LiveDemo.pq','analytics/measures.dax','analytics/additional-measures.dax','analytics/theme.json','analytics/rls.dax','analytics/POWER-BI.md','analytics/data-contract.json']
+files=['index.py','pyproject.toml','vercel.json','.vercelignore','Dockerfile','compose.yaml','.dockerignore','.gitattributes','.env.production.example','requirements-runtime.txt','package.json','package-lock.json','alembic.ini','README.md','requirements.txt','run.py','Start-Project.ps1','.env.example','.gitignore','analytics/LiveDemo.pq','analytics/measures.dax','analytics/additional-measures.dax','analytics/theme.json','analytics/rls.dax','analytics/POWER-BI.md','analytics/data-contract.json']
 with zipfile.ZipFile(OUT,'w',zipfile.ZIP_DEFLATED) as archive:
     for name in folders:
         for path in (ROOT/name).rglob('*'):
@@ -24,3 +24,4 @@ with zipfile.ZipFile(OUT) as archive:
     assert 'README.md' in archive.namelist()
     assert len([p for p in archive.namelist() if p.startswith('powerbi/csv/') and p.endswith('.csv')])==10
 print(f'Created {OUT.name}: {len(archive.namelist())} files, {OUT.stat().st_size} bytes')
+

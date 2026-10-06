@@ -12,6 +12,38 @@ from backend.security import hash_password
 from backend.status import classify, indicators
 import pytest
 
+def test_persistent_database_upload_and_cloud_limit(client,monkeypatch):
+    from backend.models import SubmissionContent,UPLOADS
+    monkeypatch.setenv('UPLOAD_STORAGE','database')
+    monkeypatch.setenv('VERCEL','1')
+    login(client,'admin@example.test')
+    assignment=data(client.post('/api/assignments',json={'subject_id':1,'class_id':1,'student_id':1,
+        'title':'Persistent cloud work','due_date':'2030-01-01T12:00:00+00:00'}))
+    login(client,'student@example.test')
+    body=b'Private persistent learning evidence'
+    result=data(client.post('/api/submissions',data={'assignment_id':assignment['id'],'student_id':1},files={'file':('evidence.txt',body,'text/plain')}))
+    with Session() as db:
+        assert db.get(SubmissionContent,result['id']).content==body
+    assert client.get(f"/api/submissions/{result['id']}/download").content==body
+    assert client.post('/api/submissions',data={'assignment_id':assignment['id'],'student_id':1},files={'file':('oversized.txt',b'x'*(3*1024*1024+1),'text/plain')}).status_code==413
+    login(client,'parent@example.test')
+    assert client.get(f"/api/submissions/{result['id']}/download").status_code==403
+    login(client,'teacher.b@example.test')
+    assert client.get(f"/api/submissions/{result['id']}/download").status_code==403
+
+def test_cohort_rule_queries_do_not_grow_per_student(client):
+    from sqlalchemy import event
+    from backend.models import engine
+    queries=[]
+    def track(connection,cursor,statement,parameters,context,executemany):
+        if statement.lstrip().upper().startswith('SELECT'):queries.append(statement)
+    event.listen(engine,'before_cursor_execute',track)
+    try:
+        with Session() as db:
+            result=indicators(db,list(range(1,481)))
+        assert len(result)==480 and len(queries)<8
+    finally:event.remove(engine,'before_cursor_execute',track)
+
 @pytest.fixture(scope='module')
 def client():
     # Startup seeds the isolated database. It does not touch the application database.

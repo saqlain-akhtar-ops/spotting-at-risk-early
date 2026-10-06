@@ -211,7 +211,7 @@ python -m pytest tests -q
 python tools/verify_powerbi_delivery.py
 ```
 
-The final local suite passed **19 tests**. The tests use a separate temporary database and storage directory. They cover authentication, authorization, category boundaries, parent records, extra classes, file ownership/validation, report release, notice previews, saved score changes, live feeds, CSV quality and deployment controls.
+The final local suite passed **23 tests**. The tests use a separate temporary database and storage directory. They cover authentication, authorization, category boundaries, parent records, extra classes, file ownership/validation, report release, notice previews, saved score changes, live feeds, CSV quality and deployment controls.
 
 To rebuild the React analytics using Node.js:
 
@@ -232,3 +232,6 @@ Production mode refuses demo seeding, insecure cookies, wildcard hosts, an impli
 SMTP is in preview mode. Microsoft SSO, institutional onboarding, shared rate limiting for replicas, malware scanning, load testing, tested backup restoration and native Power BI validation remain deployment work. Versioned migrations were applied and verified on the dedicated local MySQL database. Browser tooling blocked local preview access for the new React version, so its click interactions, animations and mobile layout have not been visually verified. Docker deployment has not been executed here.
 
 The submission therefore demonstrates the complete implemented academic-support workflow and provides deployment controls, while clearly separating tested behavior from external production validation.
+
+
+See [Vercel hosted demonstration](docs/VERCEL-README.md) for the separate Neon database, private cloud accounts and serverless storage configuration.

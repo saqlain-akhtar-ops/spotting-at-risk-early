@@ -32,12 +32,12 @@ def indicators(db, student_ids, term_id=None, subject_id=None):
     cohort = sorted(v for (sid, tid), v in averages.items() if tid == latest)
     cutoff = cohort[max(0, ceil(.9 * len(cohort)) - 1)] if cohort else None
     result = {}
+    prior_terms = sorted(t for t in db.scalars(select(Term.id)) if t < latest)
+    history_terms = (prior_terms + [latest])[-3:]
     for sid in student_ids:
         rs = grouped.get((sid, latest), [])
         current = averages.get((sid, latest))
-        prior_terms = sorted(t for t in db.scalars(select(Term.id)) if t < latest)
         prior = averages.get((sid, prior_terms[-1])) if prior_terms else None
-        history_terms = (prior_terms + [latest])[-3:]
         history = [averages[(sid, t)] for t in history_terms if (sid, t) in averages]
         attendance = mean(r.attendance for r in rs) if rs else None
         status, reasons = classify(current, prior, attendance or 0, history, cutoff)

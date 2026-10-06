@@ -26,7 +26,7 @@ settings=load_settings()
 
 @asynccontextmanager
 async def lifespan(app):
-    if engine.dialect.name=='mysql':
+    if engine.dialect.name in ('mysql','postgresql'):
         from alembic.config import Config
         from alembic.script import ScriptDirectory
         migration_config=Config(str(ROOT/'alembic.ini'))
@@ -34,8 +34,8 @@ async def lifespan(app):
         expected=ScriptDirectory.from_config(migration_config).get_current_head()
         with engine.connect() as connection:
             try:actual=connection.scalar(text('SELECT version_num FROM alembic_version'))
-            except Exception:raise RuntimeError('MySQL schema is not migrated; run tools/migrate.py upgrade') from None
-        if actual!=expected:raise RuntimeError('MySQL schema needs an upgrade; run tools/migrate.py upgrade')
+            except Exception:raise RuntimeError('Database schema is not migrated; run tools/migrate.py upgrade') from None
+        if actual!=expected:raise RuntimeError('Database schema needs an upgrade; run tools/migrate.py upgrade')
     else:
         Base.metadata.create_all(engine)
     if settings.demo_seed:
@@ -159,7 +159,8 @@ def metadata(user=Depends(actor), db=Depends(database)):
     return ok({'classes':[public(x) for x in db.scalars(select(SchoolClass).where(SchoolClass.id.in_(cids)))],
                'subjects':[public(x) for x in db.scalars(select(Subject))], 'terms':[public(x) for x in db.scalars(select(Term))],
                'statuses':STATUSES, 'teachers':[public(x,('password_hash',)) for x in db.scalars(select(User).where(User.role=='teacher'))] if user.role in ('admin','teacher') else [],
-               'email_mode':os.getenv('EMAIL_MODE','preview'), 'synthetic_data':True})
+               'email_mode':os.getenv('EMAIL_MODE','preview'), 'synthetic_data':True,
+               'upload_max_bytes':3*1024*1024 if os.getenv('VERCEL')=='1' else 5*1024*1024})
 
 def student_rows(db,user,term_id=None,class_id=None,subject_id=None,academic_year=None,status=None):
     if term_id is not None:require_lookup(db,Term,term_id)
@@ -167,7 +168,8 @@ def student_rows(db,user,term_id=None,class_id=None,subject_id=None,academic_yea
     ids=scope(db,user)
     students=list(db.scalars(select(Student).where(Student.id.in_(ids))))
     info=indicators(db,ids,term_id,subject_id)
-    return [{**public(s), 'class_name':db.get(SchoolClass,s.class_id).name, **info[s.id]} for s in students
+    classes={c.id:c.name for c in db.scalars(select(SchoolClass))}
+    return [{**public(s), 'class_name':classes[s.class_id], **info[s.id]} for s in students
             if (not class_id or s.class_id==class_id) and (not academic_year or s.academic_year==academic_year) and (not status or info[s.id]['status']==status)]
 @app.get('/api/students')
 def students(term_id:int|None=None,class_id:int|None=None,subject_id:int|None=None,academic_year:str|None=None,status:str|None=None,q:str='',user=Depends(actor),db=Depends(database)):
@@ -288,8 +290,9 @@ async def upload(assignment_id:int=Form(...),student_id:int=Form(...),file:Uploa
     ext=Path(filename).suffix.lower()
     allowed={'.pdf':'application/pdf','.txt':'text/plain','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg'}
     if ext not in allowed or file.content_type!=allowed[ext]:raise HTTPException(422,'Permitted files: PDF, UTF-8 text, PNG and JPEG with matching MIME type')
-    content=await file.read(5*1024*1024+1)
-    if len(content)>5*1024*1024:raise HTTPException(413,'File exceeds 5 MB')
+    maximum=3*1024*1024 if os.getenv('VERCEL')=='1' else 5*1024*1024
+    content=await file.read(maximum+1)
+    if len(content)>maximum:raise HTTPException(413,f'File exceeds {maximum//(1024*1024)} MB')
     if not content:raise HTTPException(422,'Empty file')
     valid=(ext=='.pdf' and content.startswith(b'%PDF-')) or (ext=='.png' and content.startswith(b'\x89PNG\r\n\x1a\n')) or (ext in ('.jpg','.jpeg') and content.startswith(b'\xff\xd8\xff'))
     if ext=='.txt':
@@ -301,7 +304,11 @@ async def upload(assignment_id:int=Form(...),student_id:int=Form(...),file:Uploa
     s=Submission(assignment_id=assignment_id,student_id=student_id,original_filename=filename,stored_filename=stored,mime_type=allowed[ext],file_size=len(content),file_hash=hashlib.sha256(content).hexdigest(),version_no=len(prior)+1,status='LATE' if datetime.now(timezone.utc)>datetime.fromisoformat(a.due_date) else 'SUBMITTED')
     path=UPLOADS/stored
     try:
-        path.write_bytes(content);db.add(s);db.flush();audit(db,user,'FILE_UPLOADED','submissions',s.id);db.commit()
+        db.add(s);db.flush()
+        if os.getenv('UPLOAD_STORAGE','filesystem')=='database':
+            db.add(SubmissionContent(submission_id=s.id,content=content))
+        else:path.write_bytes(content)
+        audit(db,user,'FILE_UPLOADED','submissions',s.id);db.commit()
     except Exception:
         path.unlink(missing_ok=True);raise
     return ok(public(s,('stored_filename',)))
@@ -317,7 +324,14 @@ def download(subid:int,user=Depends(actor),db=Depends(database)):
     s=submission_guard(db,user,subid)
     if user.role=='parent':raise HTTPException(403,'Guardians may view status, not assignment files')
     audit(db,user,'FILE_DOWNLOADED','submissions',s.id);db.commit()
-    return FileResponse(UPLOADS/s.stored_filename,media_type=s.mime_type,filename=s.original_filename)
+    stored=db.get(SubmissionContent,s.id)
+    if stored is not None:
+        from urllib.parse import quote
+        return Response(stored.content,media_type=s.mime_type,
+            headers={'Content-Disposition':"attachment; filename*=UTF-8''"+quote(s.original_filename,safe='')})
+    path=UPLOADS/s.stored_filename
+    if not path.is_file():raise HTTPException(404,'Uploaded file is unavailable')
+    return FileResponse(path,media_type=s.mime_type,filename=s.original_filename)
 @app.post('/api/submissions/{subid}/review')
 def review(subid:int,body:ReviewInput,user=Depends(actor),db=Depends(database)):
     staff(user);s=submission_guard(db,user,subid);s.status=body.status;s.feedback=body.feedback
@@ -422,8 +436,11 @@ def dashboard(term_id:int|None=None,class_id:int|None=None,subject_id:int|None=N
     latest_sub={}
     for s in db.scalars(select(Submission).where(Submission.student_id.in_(ids)).order_by(Submission.version_no)):latest_sub[(s.student_id,s.assignment_id)]=s
     pending=0
+    assignments=defaultdict(list)
+    for assignment in db.scalars(select(Assignment).where(Assignment.class_id.in_({r['class_id'] for r in rows}))):
+        assignments[assignment.class_id].append(assignment)
     for student in rows:
-        for a in db.scalars(select(Assignment).where(Assignment.class_id==student['class_id'])):
+        for a in assignments[student['class_id']]:
             if a.student_id is not None and a.student_id!=student['id']:continue
             if (student['id'],a.id) not in latest_sub or latest_sub[(student['id'],a.id)].status=='RESUBMISSION_REQUESTED':pending+=1
     generated=set(db.scalars(select(Report.student_id).where(Report.student_id.in_(ids),Report.term_id==term)))

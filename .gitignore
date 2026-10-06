@@ -15,3 +15,5 @@ analytics/AtRiskModel/
 installers/
 .env.local
 **/.pbi/
+.vercel/
+.env.vercel.local

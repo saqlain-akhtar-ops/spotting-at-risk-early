@@ -6,7 +6,7 @@ from .models import *
 from .status import indicators
 from .powerbi import COLUMNS
 
-EXPORT=ROOT/'analytics'/'export'
+EXPORT=Path(os.getenv('ANALYTICS_EXPORT_DIR',str(DATA/'analytics-export') if os.getenv('VERCEL')=='1' else str(ROOT/'analytics'/'export')))
 def quality(db):
     rows=list(db.scalars(select(Performance)))
     keys=Counter((r.student_id,r.subject_id,r.term_id) for r in rows)

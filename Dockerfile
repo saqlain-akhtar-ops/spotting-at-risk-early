@@ -10,6 +10,8 @@ COPY --chown=app:app backend ./backend
 COPY --chown=app:app frontend ./frontend
 COPY --chown=app:app tools ./tools
 COPY --chown=app:app analytics ./analytics
+COPY --chown=app:app database ./database
+COPY --chown=app:app alembic.ini ./
 COPY --chown=app:app run.py ./
 USER app
 EXPOSE 8000

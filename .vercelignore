@@ -1,0 +1,17 @@
+.git
+.env*
+!.env.example
+!.env.production.example
+.runtime
+.venv
+.tooling
+installers
+data
+deliverables
+node_modules
+__pycache__
+**/__pycache__
+.pytest_cache
+analytics/export
+analytics/local-review
+analytics/AtRiskModel

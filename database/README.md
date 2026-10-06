@@ -12,7 +12,7 @@ MySQL stores the project's operational records. The backend accesses it through 
 | Runtime account | at_risk_app; project record CRUD only |
 | Migration account | at_risk_migrate; project schema privileges |
 | Data directory | data/mysql-project |
-| Current revision | 7a9990df7af4 |
+| Current revision | 9bc860de2041 |
 
 The isolated project server does not replace the existing MySQL80 service. Generated passwords remain in ignored local files and are excluded from the submission. Explicit environment settings override `.env.local`.
 
@@ -58,3 +58,4 @@ Legacy timestamps, review metadata and hashes remain unknown if they were never 
 Portable development without `.env.local` uses SQLite. Production requires its own configuration, approved records and account provisioning. Backups and restoration have not been validated; the preserved SQLite copy is not a complete MySQL backup strategy.
 
 See [local operations](../docs/MYSQL-SETUP.md) and [Power BI README](../powerbi/README.md).
+

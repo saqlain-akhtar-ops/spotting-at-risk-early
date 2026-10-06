@@ -88,6 +88,7 @@ python -m pytest tests -q
 python tools/migrate.py check
 ```
 
-Tests use a temporary database. If this laptop's restricted local host configuration is loaded during testing, set `ALLOWED_HOSTS=testserver` for the test process. The existing suite passed 19 tests; the MySQL-backed authenticated dashboard and feed were also checked separately.
+Tests use a temporary database. If this laptop's restricted local host configuration is loaded during testing, set `ALLOWED_HOSTS=testserver` for the test process. The existing suite passed 23 tests; the MySQL-backed authenticated dashboard and feed were also checked separately.
 
 See [security](../docs/SECURITY-README.md) and [end-to-end process](../docs/PROJECT-PROCESS.md).
+

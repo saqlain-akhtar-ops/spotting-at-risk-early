@@ -10,7 +10,7 @@ Configured on this laptop on 6 October 2026:
 | Runtime user | at_risk_app@localhost; SELECT, INSERT, UPDATE, DELETE only |
 | Migration user | at_risk_migrate@localhost; schema privileges on this database only |
 | Data directory | data/mysql-project |
-| Schema revision | 7a9990df7af4 |
+| Schema revision | 9bc860de2041 |
 
 This is a separate loopback-only server. The pre-existing MySQL80 service and its databases were not changed. The project contains synthetic demonstration records, not institutional records.
 
@@ -47,3 +47,4 @@ A live data feed does not publish a report or sign into a Microsoft account. Nat
 ## Deployment status
 
 This setup is suitable for the local submission demo. A production deployment requires institutional data, HTTPS, production configuration with demo seeding disabled, approved account provisioning, backups and restore verification. Do not expose the local MySQL port publicly.
+

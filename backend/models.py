@@ -1,12 +1,15 @@
 from datetime import datetime, timezone
-from sqlalchemy import create_engine, event, String, Integer, Float, Text, ForeignKey, UniqueConstraint, CheckConstraint
+from sqlalchemy import create_engine, event, String, Integer, Float, Text, ForeignKey, UniqueConstraint, CheckConstraint, LargeBinary
+from sqlalchemy.dialects.mysql import LONGBLOB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from .cloud import configure_cloud
 
 ROOT = Path(__file__).resolve().parents[1]
-load_dotenv(ROOT / '.env.local', override=False)
+if os.getenv('VERCEL')!='1':load_dotenv(ROOT / '.env.local', override=False)
+configure_cloud()
 DATA = Path(os.getenv('DATA_DIR', str(ROOT / 'data')))
 DATA.mkdir(parents=True,exist_ok=True)
 UPLOADS = DATA / 'uploads'
@@ -14,7 +17,7 @@ UPLOADS.mkdir(exist_ok=True)
 def now():
     return datetime.now(timezone.utc).isoformat()
 url = os.getenv('DATABASE_URL', f'sqlite:///{(DATA / "application.db").as_posix()}')
-engine = create_engine(url, **({'connect_args': {'check_same_thread': False}} if url.startswith('sqlite') else {'pool_pre_ping': True}))
+engine = create_engine(url, **({'connect_args': {'check_same_thread': False}} if url.startswith('sqlite') else {'pool_pre_ping': True,'pool_size':2,'max_overflow':1,'pool_recycle':300}))
 if url.startswith('sqlite'):
     @event.listens_for(engine, 'connect')
     def pragmas(conn, _):
@@ -146,6 +149,10 @@ class Submission(Base):
     marks: Mapped[float] = mapped_column(Float,nullable=True)
     reviewed_by: Mapped[int] = mapped_column(ForeignKey('users.id'),nullable=True)
     reviewed_at: Mapped[str] = mapped_column(String(40),nullable=True)
+class SubmissionContent(Base):
+    __tablename__='submission_content'
+    submission_id: Mapped[int]=mapped_column(ForeignKey('submissions.id',ondelete='CASCADE'),primary_key=True)
+    content: Mapped[bytes]=mapped_column(LargeBinary().with_variant(LONGBLOB(),'mysql'))
 class Report(Base):
     __tablename__ = 'progress_reports'
     id: Mapped[int] = mapped_column(primary_key=True)

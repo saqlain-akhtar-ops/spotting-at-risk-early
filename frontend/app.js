@@ -41,6 +41,7 @@ async function init(){
   const auth=await api('/auth/me');currentUser=auth.user;csrf=auth.csrf_token;$('#login').hidden=true;
   $('#identity').textContent=currentUser.name+' · '+currentUser.role;
   meta=await api('/metadata');
+  if($('#upload-limit'))$('#upload-limit').textContent='maximum '+Math.floor(meta.upload_max_bytes/(1024*1024))+' MB';
   $('#filters').innerHTML=`<div class="filter"><label>Academic year</label><select name="academic_year"><option value="">All years</option><option>2026-27</option></select></div><div class="filter"><label>Term</label><select name="term_id"><option value="">Latest term</option>${option(meta.terms,'id','name')}</select></div><div class="filter"><label>Class</label><select name="class_id"><option value="">All permitted classes</option>${option(meta.classes,'id','name')}</select></div><div class="filter"><label>Subject</label><select name="subject_id"><option value="">All subjects</option>${option(meta.subjects,'id','name')}</select></div>`;
   document.querySelectorAll('.staff-only').forEach(e=>e.hidden=!staff());document.querySelectorAll('.admin-only').forEach(e=>e.hidden=currentUser.role!=='admin');
   document.querySelectorAll('.subject-options').forEach(e=>e.innerHTML=option(meta.subjects,'id','name'));document.querySelectorAll('.class-options').forEach(e=>e.innerHTML=option(meta.classes,'id','name'));document.querySelectorAll('.teacher-options').forEach(e=>e.innerHTML=option(meta.teachers,'id','name'));document.querySelectorAll('.term-options').forEach(e=>e.innerHTML=option(meta.terms,'id','name'));

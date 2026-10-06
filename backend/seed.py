@@ -1,5 +1,5 @@
 """Deterministic synthetic sample; never represents actual student information."""
-import random, json
+import random, json, os
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import select, func
 from .models import *
@@ -10,7 +10,7 @@ def seed(db):
     if db.scalar(select(func.count(User.id))): return
     credentials = []
     def user(name, email, role):
-        password = 'Demo-' + __import__('secrets').token_urlsafe(12)
+        password = os.getenv('DEMO_'+role.upper()+'_PASSWORD') or 'Demo-' + __import__('secrets').token_urlsafe(12)
         u = User(name=name, email=email, role=role, password_hash=hash_password(password))
         db.add(u); db.flush()
         credentials.append({'role': role, 'email': email, 'password': password})
