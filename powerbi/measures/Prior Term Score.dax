@@ -1,0 +1,5 @@
+Prior Term Score =
+VAR T = [Reporting Term]
+        VAR P = MAXX(FILTER(ALL(Dim_Term), Dim_Term[term_id] < T), Dim_Term[term_id])
+        VAR CompleteStudents = CALCULATETABLE(VALUES(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = P, Fact_Status[status] <> "Insufficient Data")
+        RETURN IF(NOT ISBLANK(P), CALCULATE(AVERAGE(Fact_Performance[score]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = P, TREATAS(CompleteStudents, Dim_Student[student_id])))

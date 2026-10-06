@@ -1,0 +1,28 @@
+table Dim_Class
+	lineageTag: 777c86a0-84ae-5983-aa38-7da56fc563e2
+
+	column class_id
+		dataType: int64
+		sourceColumn: class_id
+		summarizeBy: none
+		isKey
+
+	column class_name
+		dataType: string
+		sourceColumn: class_name
+		summarizeBy: none
+
+	column advisor_id
+		dataType: int64
+		sourceColumn: advisor_id
+		summarizeBy: none
+
+	partition Dim_Class = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:/Users/91731/OneDrive/Documents/ChatGPT/MIH_26/analytics/export/Dim_Class.csv"), [Delimiter=",", Columns=3, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    Headers = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    Typed = Table.TransformColumnTypes(Headers, {{"class_id", Int64.Type}, {"class_name", type text}, {"advisor_id", Int64.Type}}, "en-US")
+				in
+				    Typed

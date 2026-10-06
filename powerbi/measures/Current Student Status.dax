@@ -1,0 +1,3 @@
+Current Student Status =
+VAR T = [Reporting Term]
+        RETURN IF(HASONEVALUE(Dim_Student[student_id]), CALCULATE(SELECTEDVALUE(Fact_Status[status]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T))

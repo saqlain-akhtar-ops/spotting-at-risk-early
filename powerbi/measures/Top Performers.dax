@@ -1,0 +1,3 @@
+Top Performers =
+VAR T = [Reporting Term]
+        RETURN CALCULATE(DISTINCTCOUNT(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, Fact_Status[status] = "Top Performer")

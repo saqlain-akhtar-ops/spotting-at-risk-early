@@ -1,0 +1,102 @@
+table Fact_Status
+	lineageTag: 13e70e1b-e1d8-5960-bbce-4a193dae71ef
+
+	column student_id
+		dataType: int64
+		sourceColumn: student_id
+		summarizeBy: none
+
+	column term_id
+		dataType: int64
+		sourceColumn: term_id
+		summarizeBy: none
+
+	column current_average
+		dataType: double
+		sourceColumn: current_average
+		summarizeBy: none
+
+	column prior_average
+		dataType: double
+		sourceColumn: prior_average
+		summarizeBy: none
+
+	column trend_delta
+		dataType: double
+		sourceColumn: trend_delta
+		summarizeBy: none
+
+	column attendance
+		dataType: double
+		sourceColumn: attendance
+		summarizeBy: none
+
+	column status
+		dataType: string
+		sourceColumn: status
+		summarizeBy: none
+
+	column rule_version
+		dataType: string
+		sourceColumn: rule_version
+		summarizeBy: none
+
+	column review_required
+		dataType: boolean
+		sourceColumn: review_required
+		summarizeBy: none
+
+	column top_decile_cutoff
+		dataType: double
+		sourceColumn: top_decile_cutoff
+		summarizeBy: none
+
+	column reason_codes
+		dataType: string
+		sourceColumn: reason_codes
+		summarizeBy: none
+
+	measure 'At Risk Students' =
+			VAR T = [Reporting Term]
+			RETURN CALCULATE(DISTINCTCOUNT(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, Fact_Status[status] = "At Risk")
+		formatString: #,0
+
+	measure 'Slow Learners' =
+			VAR T = [Reporting Term]
+			RETURN CALCULATE(DISTINCTCOUNT(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, Fact_Status[status] = "Slow Learner")
+		formatString: #,0
+
+	measure 'Watch Students' =
+			VAR T = [Reporting Term]
+			RETURN CALCULATE(DISTINCTCOUNT(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, Fact_Status[status] = "Watch")
+		formatString: #,0
+
+	measure 'On Track Students' =
+			VAR T = [Reporting Term]
+			RETURN CALCULATE(DISTINCTCOUNT(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, Fact_Status[status] = "On Track")
+		formatString: #,0
+
+	measure 'Top Performers' =
+			VAR T = [Reporting Term]
+			RETURN CALCULATE(DISTINCTCOUNT(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, Fact_Status[status] = "Top Performer")
+		formatString: #,0
+
+	measure 'Insufficient Data Students' =
+			VAR T = [Reporting Term]
+			RETURN CALCULATE(DISTINCTCOUNT(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, Fact_Status[status] = "Insufficient Data")
+		formatString: #,0
+
+	measure 'Current Student Status' =
+			VAR T = [Reporting Term]
+			RETURN IF(HASONEVALUE(Dim_Student[student_id]), CALCULATE(SELECTEDVALUE(Fact_Status[status]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T))
+		formatString: #,0
+
+	partition Fact_Status = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:/Users/91731/OneDrive/Desktop/Dummy_hackathon/files/PowerBI_AtRisk_2026-10-06/csv/Fact_Status.csv"), [Delimiter=",", Columns=11, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    Headers = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    Typed = Table.TransformColumnTypes(Headers, {{"student_id", Int64.Type}, {"term_id", Int64.Type}, {"current_average", type number}, {"prior_average", type number}, {"trend_delta", type number}, {"attendance", type number}, {"status", type text}, {"rule_version", type text}, {"review_required", type logical}, {"top_decile_cutoff", type number}, {"reason_codes", type text}}, "en-US")
+				in
+				    Typed

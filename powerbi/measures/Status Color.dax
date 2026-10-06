@@ -1,0 +1,2 @@
+Status Color =
+SWITCH([Current Student Status], "At Risk", "#EF776B", "Watch", "#EFB64F", "On Track", "#5BC9A9", "Top Performer", "#3157D5", "Slow Learner", "#9D8CF5", "#8791A5")

@@ -1,0 +1,2 @@
+Status Share =
+DIVIDE([Status Count], CALCULATE([Status Count], REMOVEFILTERS(Fact_Status[status])))

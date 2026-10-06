@@ -1,0 +1,2 @@
+Total Students =
+DISTINCTCOUNT(Dim_Student[student_id])

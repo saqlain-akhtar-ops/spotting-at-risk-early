@@ -1,0 +1,2 @@
+Complete Score Coverage =
+DIVIDE([Total Students] - COALESCE([Insufficient Data Students], 0), [Total Students])

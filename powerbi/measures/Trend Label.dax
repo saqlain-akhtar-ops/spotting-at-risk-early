@@ -1,0 +1,2 @@
+Trend Label =
+IF(ISBLANK([Score Trend]), "Prior score unavailable", FORMAT([Score Trend], "+0.0;-0.0;0.0") & " points")

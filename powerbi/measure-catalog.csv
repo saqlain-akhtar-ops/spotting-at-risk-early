@@ -1,0 +1,35 @@
+﻿table,measure,format
+Fact_Performance,Reporting Term,Whole number
+Fact_Performance,Total Students,Whole number
+Fact_Performance,Average Score,Decimal 0.0
+Fact_Performance,Average Attendance,Decimal 0.0
+Fact_Performance,Prior Term Score,Whole number
+Fact_Performance,Score Trend,Decimal 0.0
+Fact_Status,At Risk Students,Whole number
+Fact_Status,Slow Learners,Whole number
+Fact_Status,Watch Students,Whole number
+Fact_Status,On Track Students,Whole number
+Fact_Status,Top Performers,Whole number
+Fact_Status,Insufficient Data Students,Whole number
+Fact_Status,Current Student Status,Text
+Fact_Performance,Average Score by Term,Whole number
+Fact_Intervention,Students in Support,Whole number
+Fact_Intervention,Extra Classes Pending,Whole number
+Fact_Intervention,Support Assigned,Whole number
+Fact_Intervention,Support Attended,Whole number
+Fact_Intervention,Support Attendance Rate,Percentage
+Fact_Report,Students with Reports,Whole number
+Fact_Report,Reports Pending,Whole number
+Fact_Status,At Risk Rate,Percentage
+Fact_Status,Slow Learner Rate,Percentage
+Fact_Status,Top Performer Rate,Percentage
+Fact_Status,Status Count,Whole number
+Fact_Status,Status Share,Percentage
+Fact_Status,Low Attendance Students,Whole number
+Fact_Status,Complete Score Coverage,Percentage
+Fact_Intervention,Support Coverage,Percentage
+Fact_Report,Students with Released Reports,Whole number
+Fact_Report,Reports Awaiting Release,Whole number
+Fact_Report,Report Release Coverage,Percentage
+Fact_Status,Status Color,Text
+Fact_Performance,Trend Label,Text

@@ -1,0 +1,55 @@
+{
+  "created_at": "2026-10-06T12:08:52.511756+00:00",
+  "source": "Synthetic data",
+  "data_quality": {
+    "checked_at": "2026-10-06T12:08:48.995123+00:00",
+    "records": 5684,
+    "expected_assessments": 5760,
+    "absent_assessments": 76,
+    "issues": [],
+    "passed": true,
+    "note": "Absent assessments are reported separately; reports require full subject coverage."
+  },
+  "tables": {
+    "Dim_Student": {
+      "rows": 480,
+      "sha256": "dc8a830ca626eec6582ebf8e158834418be2a4198d9b25bb1231878ae99c7d02"
+    },
+    "Dim_Class": {
+      "rows": 6,
+      "sha256": "25c1a4b6ba10fba6642135c1d596f0d30ae1b8a092f32b1bbe32580a95822754"
+    },
+    "Dim_Subject": {
+      "rows": 3,
+      "sha256": "3a9f29047730b4516d8db37afe1d1204f399642c7a41843a46569a140e5c89d0"
+    },
+    "Dim_Term": {
+      "rows": 4,
+      "sha256": "021e2b8d88371d6df5104ce0369047ada4e8bf02ad42b319c89ac4b418d1e1a1"
+    },
+    "Fact_Performance": {
+      "rows": 5684,
+      "sha256": "1861476350fb7a142ef8083d0073aed512264cc309cda4923fe6b908a219a5e3"
+    },
+    "Dim_UserAccess": {
+      "rows": 962,
+      "sha256": "51612892399d934354647ac98c4f58a6f80dae3fbba10d154dd94d66ae002b07"
+    },
+    "Fact_Status": {
+      "rows": 1920,
+      "sha256": "1870658b2bbf28d78abbad501e444a558e962fe180cb77dd23f824bcd870ed88"
+    },
+    "Fact_Intervention": {
+      "rows": 1,
+      "sha256": "171f945bcf4b75d868a3e174aedc9516998582680fd42743fc8c693fcd81ab77"
+    },
+    "Fact_Submission": {
+      "rows": 0,
+      "sha256": "7938fac8b02d15bdf491f0ef555d73226f3d01302a071a2ed51700204121b028"
+    },
+    "Fact_Report": {
+      "rows": 1,
+      "sha256": "dc28b8ef1b2b41522ed70b077237c8f9f7c35b9b37ec69b5e5bb45dde65d6e74"
+    }
+  }
+}

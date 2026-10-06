@@ -1,0 +1,2 @@
+Support Attended =
+CALCULATE(COUNTROWS(Fact_Intervention), Fact_Intervention[attendance] IN { "PRESENT", "LATE" })

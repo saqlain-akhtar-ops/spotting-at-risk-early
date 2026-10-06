@@ -1,0 +1,23 @@
+table Dim_Subject
+	lineageTag: 602415a0-028d-5cc6-af49-48e5eec575c3
+
+	column subject_id
+		dataType: int64
+		sourceColumn: subject_id
+		summarizeBy: none
+		isKey
+
+	column name
+		dataType: string
+		sourceColumn: name
+		summarizeBy: none
+
+	partition Dim_Subject = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:/Users/91731/OneDrive/Desktop/Dummy_hackathon/files/PowerBI_AtRisk_2026-10-06/csv/Dim_Subject.csv"), [Delimiter=",", Columns=2, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    Headers = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    Typed = Table.TransformColumnTypes(Headers, {{"subject_id", Int64.Type}, {"name", type text}}, "en-US")
+				in
+				    Typed

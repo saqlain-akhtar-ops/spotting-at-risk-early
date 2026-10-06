@@ -1,0 +1,3 @@
+Average Score by Term =
+VAR CompleteStudents = CALCULATETABLE(VALUES(Fact_Status[student_id]), Fact_Status[status] <> "Insufficient Data")
+        RETURN CALCULATE(AVERAGE(Fact_Performance[score]), TREATAS(CompleteStudents, Dim_Student[student_id]))

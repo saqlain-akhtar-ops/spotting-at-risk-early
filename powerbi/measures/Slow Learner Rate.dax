@@ -1,0 +1,2 @@
+Slow Learner Rate =
+DIVIDE([Slow Learners], [Total Students])

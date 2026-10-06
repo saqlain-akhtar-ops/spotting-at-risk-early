@@ -1,0 +1,3 @@
+Average Attendance =
+VAR T = [Reporting Term]
+        RETURN CALCULATE(AVERAGE(Fact_Performance[attendance]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T)

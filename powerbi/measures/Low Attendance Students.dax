@@ -1,0 +1,3 @@
+Low Attendance Students =
+VAR T = [Reporting Term]
+        RETURN CALCULATE(DISTINCTCOUNT(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, FILTER(Fact_Status, NOT ISBLANK(Fact_Status[attendance]) && Fact_Status[attendance] < 75))

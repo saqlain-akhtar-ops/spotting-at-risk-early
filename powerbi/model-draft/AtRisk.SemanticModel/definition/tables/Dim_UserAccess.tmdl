@@ -1,0 +1,32 @@
+table Dim_UserAccess
+	lineageTag: deca1994-07db-5812-b48b-10a8ee55561c
+
+	column email
+		dataType: string
+		sourceColumn: email
+		summarizeBy: none
+
+	column student_id
+		dataType: int64
+		sourceColumn: student_id
+		summarizeBy: none
+
+	column class_id
+		dataType: int64
+		sourceColumn: class_id
+		summarizeBy: none
+
+	column role
+		dataType: string
+		sourceColumn: role
+		summarizeBy: none
+
+	partition Dim_UserAccess = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:/Users/91731/OneDrive/Desktop/Dummy_hackathon/files/PowerBI_AtRisk_2026-10-06/csv/Dim_UserAccess.csv"), [Delimiter=",", Columns=4, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    Headers = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    Typed = Table.TransformColumnTypes(Headers, {{"email", type text}, {"student_id", Int64.Type}, {"class_id", Int64.Type}, {"role", type text}}, "en-US")
+				in
+				    Typed

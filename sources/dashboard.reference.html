@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Student Performance — Power BI Analytics</title>
+<style>
+:root{
+  --bg:#f7f4ee; --surface:#fff; --surface-2:#f3f0ea; --ink:#172033; --muted:#687187;
+  --line:#e6e1d8; --blue:#3157d5; --blue-2:#2344b4; --lav:#9d8cf5; --mint:#5bc9a9;
+  --amber:#efb64f; --coral:#ef776b; --danger:#d95c59; --shadow:0 16px 45px rgba(31,39,59,.08);
+  --radius:22px; --radius-sm:14px;
+}
+[data-theme="dark"]{
+  --bg:#111522; --surface:#191e2d; --surface-2:#202637; --ink:#f5f6fa; --muted:#9ca5ba;
+  --line:#30384d; --shadow:0 18px 55px rgba(0,0,0,.28);
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,select{font:inherit} button{cursor:pointer}
+.app{min-height:100vh;display:flex}
+.rail{width:82px;position:fixed;inset:0 auto 0 0;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:18px 12px;z-index:20}
+.brand{width:46px;height:46px;border-radius:15px;background:var(--blue);color:white;display:grid;place-items:center;font-weight:900;box-shadow:0 10px 25px rgba(49,87,213,.28);margin-bottom:28px}
+.nav{display:flex;flex-direction:column;gap:10px;width:100%}
+.nav button,.rail-bottom button{border:0;background:transparent;color:var(--muted);width:100%;height:48px;border-radius:15px;display:grid;place-items:center;position:relative}
+.nav button:hover,.rail-bottom button:hover,.nav button.active{background:color-mix(in srgb,var(--blue) 10%,transparent);color:var(--blue)}
+.nav button.active:before{content:"";position:absolute;left:-12px;width:3px;height:24px;border-radius:0 5px 5px 0;background:var(--blue)}
+.rail-bottom{margin-top:auto;width:100%}
+.main{margin-left:82px;width:calc(100% - 82px)}
+.topbar{height:76px;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;position:sticky;top:0;z-index:15}
+.crumb{font-size:13px;color:var(--muted)} .crumb strong{color:var(--ink)}
+.top-actions{display:flex;gap:10px;align-items:center}
+.icon-btn{width:40px;height:40px;border:1px solid var(--line);background:var(--surface);border-radius:12px;color:var(--ink)}
+.user{display:flex;align-items:center;gap:10px;border-left:1px solid var(--line);padding-left:14px}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--lav);display:grid;place-items:center;color:#fff;font-weight:800}
+.page{padding:28px 30px 50px;max-width:1600px;margin:auto}
+.view{display:none;animation:rise .35s ease both}.view.active{display:block}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:24px}
+.eyebrow{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--blue);font-weight:850;margin-bottom:8px}
+h1{font-size:clamp(30px,4vw,48px);line-height:1.02;letter-spacing:-.045em;margin:0 0 10px}
+h2{font-size:21px;margin:0;letter-spacing:-.025em} h3{font-size:15px;margin:0}
+.hero p,.sub{margin:0;color:var(--muted);max-width:760px;line-height:1.6}
+.status-pill{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);padding:9px 12px;border-radius:999px;font-size:12px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--amber)}
+.filters{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}
+.filter{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 13px}
+.filter label{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;font-weight:800;margin-bottom:4px}
+.filter select{border:0;outline:0;background:transparent;color:var(--ink);width:100%;font-weight:700}
+.grid{display:grid;gap:16px}.kpis{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.card:after{content:"";position:absolute;width:100px;height:100px;border-radius:50%;right:-50px;top:-50px;background:color-mix(in srgb,var(--lav) 11%,transparent);pointer-events:none}
+.kpi-label{font-size:12px;color:var(--muted);font-weight:700}.kpi-value{font-size:34px;letter-spacing:-.04em;font-weight:850;margin:8px 0 3px}.kpi-meta{font-size:11px;color:var(--muted)}
+.kpi-accent{width:28px;height:4px;border-radius:99px;background:var(--blue);margin-top:15px}.mint{background:var(--mint)}.amber{background:var(--amber)}.coral{background:var(--coral)}
+.two{grid-template-columns:1.55fr 1fr}.three{grid-template-columns:1fr 1fr 1fr}.section-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px}
+.chart{height:250px;display:flex;align-items:flex-end;gap:10px;padding:20px 4px 4px}.bar-wrap{height:100%;flex:1;display:flex;align-items:flex-end;justify-content:center;gap:7px}.bar{width:100%;max-width:30px;border-radius:8px 8px 3px 3px;background:var(--blue);transition:.25s}.bar:hover{transform:translateY(-5px);filter:brightness(1.08)}.bar.alt{background:var(--lav)}.bar.mintbar{background:var(--mint)}.xlabels{display:flex;justify-content:space-around;color:var(--muted);font-size:10px}
+.legend{display:flex;gap:15px;font-size:11px;color:var(--muted)}.legend span{display:flex;align-items:center;gap:5px}.legend i{width:8px;height:8px;border-radius:50%;display:block}
+.donut-area{display:flex;align-items:center;justify-content:center;gap:24px;min-height:250px}.donut{width:165px;height:165px;border-radius:50%;background:conic-gradient(var(--blue) 0 48%,var(--mint) 48% 79%,var(--amber) 79% 91%,var(--coral) 91% 100%);position:relative}.donut:after{content:"";position:absolute;inset:34px;background:var(--surface);border-radius:50%}.donut-center{position:absolute;inset:0;display:grid;place-items:center;z-index:2;text-align:center;font-weight:850;font-size:23px}.donut-center small{display:block;font-size:9px;color:var(--muted);font-weight:600}
+.legend-list{display:grid;gap:12px}.legend-list div{display:flex;justify-content:space-between;gap:20px;font-size:12px}.legend-list b{font-size:13px}
+.table-card{padding:0}.table-head{padding:20px;border-bottom:1px solid var(--line)}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;min-width:650px}th,td{text-align:left;padding:14px 20px;border-bottom:1px solid var(--line);font-size:12px}th{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em}tr{transition:.18s}tbody tr:hover{background:color-mix(in srgb,var(--blue) 4%,transparent)}.student{display:flex;align-items:center;gap:10px;font-weight:800}.mini-avatar{width:30px;height:30px;border-radius:10px;background:var(--surface-2);display:grid;place-items:center;font-size:10px}.score{font-weight:850}.badge{display:inline-flex;border-radius:999px;padding:6px 9px;font-size:10px;font-weight:800}.badge.danger{background:color-mix(in srgb,var(--coral) 16%,transparent);color:var(--danger)}.badge.good{background:color-mix(in srgb,var(--mint) 18%,transparent);color:#198e70}.badge.watch{background:color-mix(in srgb,var(--amber) 20%,transparent);color:#9a6a14}
+.row-layout{display:grid;grid-template-columns:1.5fr .8fr;gap:16px}.profile{position:sticky;top:100px}.profile-head{display:flex;align-items:center;gap:14px}.big-avatar{width:54px;height:54px;border-radius:17px;background:var(--lav);color:#fff;display:grid;place-items:center;font-weight:900;font-size:18px}.profile-score{font-size:38px;font-weight:900;letter-spacing:-.05em;margin:18px 0 2px}.meter{height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden}.meter span{display:block;height:100%;background:var(--blue);border-radius:inherit}.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}.metric{background:var(--surface-2);padding:13px;border-radius:14px}.metric small{display:block;color:var(--muted);font-size:10px}.metric strong{font-size:18px}
+.spark{height:120px;position:relative;margin-top:12px}.spark svg{width:100%;height:100%;overflow:visible}.spark path.line{fill:none;stroke:var(--blue);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.spark path.area{fill:color-mix(in srgb,var(--blue) 10%,transparent);stroke:none}
+.empty{min-height:300px;display:grid;place-items:center;text-align:center;padding:35px}.empty-icon{width:58px;height:58px;border-radius:18px;background:color-mix(in srgb,var(--blue) 10%,transparent);color:var(--blue);display:grid;place-items:center;margin:0 auto 15px;font-size:25px}.empty p{color:var(--muted);max-width:520px;line-height:1.65}.btn{border:0;border-radius:12px;padding:10px 14px;font-weight:800;background:var(--blue);color:#fff;box-shadow:0 8px 20px rgba(49,87,213,.2)}.btn.secondary{background:var(--surface);border:1px solid var(--line);color:var(--ink);box-shadow:none}.btn:hover{transform:translateY(-1px)}
+.actions{display:flex;gap:9px;flex-wrap:wrap}
+.callout{border:1px dashed var(--line);background:var(--surface-2);padding:15px;border-radius:16px;color:var(--muted);font-size:12px;line-height:1.6}
+.project-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.project-grid .wide{grid-column:1/-1}
+details{border-top:1px solid var(--line);padding:14px 0}details:first-child{border-top:0}summary{cursor:pointer;font-weight:800;list-style:none}summary::-webkit-details-marker{display:none}.detail{color:var(--muted);font-size:12px;line-height:1.7;padding-top:10px}
+.settings{display:grid;grid-template-columns:1fr 1fr;gap:16px}.setting-row{display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-bottom:1px solid var(--line)}.setting-row:last-child{border-bottom:0}.toggle{width:48px;height:27px;border:0;border-radius:99px;background:var(--line);padding:3px}.toggle span{display:block;width:21px;height:21px;background:var(--surface);border-radius:50%;transition:.2s}.toggle.on{background:var(--blue)}.toggle.on span{transform:translateX(21px)}
+.toast{position:fixed;right:25px;bottom:25px;background:var(--ink);color:var(--bg);padding:13px 16px;border-radius:13px;font-size:12px;opacity:0;transform:translateY(10px);pointer-events:none;transition:.25s;z-index:50}.toast.show{opacity:1;transform:none}
+.mobile-nav{display:none}
+@media(max-width:1050px){.kpis{grid-template-columns:1fr 1fr}.two,.row-layout,.project-grid,.settings{grid-template-columns:1fr}.profile{position:static}.filters{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.rail{display:none}.main{margin-left:0;width:100%}.topbar{padding:0 16px}.page{padding:22px 16px 90px}.hero{align-items:flex-start;flex-direction:column}.filters,.kpis{grid-template-columns:1fr}.card{border-radius:18px;padding:16px}.mobile-nav{position:fixed;display:flex;bottom:12px;left:12px;right:12px;height:64px;background:var(--surface);border:1px solid var(--line);border-radius:20px;z-index:30;box-shadow:var(--shadow);justify-content:space-around}.mobile-nav button{border:0;background:transparent;color:var(--muted);font-size:10px}.mobile-nav button.active{color:var(--blue);font-weight:800}.donut-area{flex-direction:column}.chart{height:190px}.user span{display:none}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="rail">
+  <div class="brand">SP</div>
+  <nav class="nav">
+    <button class="active" data-view="overview" title="Overview">⌂</button>
+    <button data-view="risk" title="At-Risk Triage">△</button>
+    <button data-view="top" title="Top Performers">★</button>
+  </nav>
+  <div class="rail-bottom">
+    <button data-view="project" title="Project">◇</button>
+    <button data-view="settings" title="Settings">⚙</button>
+  </div>
+</aside>
+
+<main class="main">
+<header class="topbar">
+  <div class="crumb"><strong>Student Performance</strong> / <span id="crumb">Overview</span></div>
+  <div class="top-actions">
+    <button class="icon-btn" id="refresh" title="Refresh connection">↻</button>
+    <button class="icon-btn" id="theme" title="Toggle theme">◐</button>
+    <div class="user"><div class="avatar">AL</div><span><strong>Advisor</strong><br><small style="color:var(--muted)">Microsoft identity</small></span></div>
+  </div>
+</header>
+
+<section class="page">
+<div id="overview" class="view active">
+  <div class="hero">
+    <div><div class="eyebrow">Education analytics</div><h1>See the cohort clearly.</h1><p>A coordinated performance workspace for advisors and academic leaders. Connect your Power BI account to load your permitted workspaces, semantic model and RLS-scoped results.</p></div>
+    <div class="status-pill"><i class="dot"></i><span id="connectionStatus">Power BI connection required</span></div>
+  </div>
+
+  <div class="filters">
+    <div class="filter"><label>Academic Year</label><select><option>All academic years</option><option>2026–27</option></select></div>
+    <div class="filter"><label>Term</label><select><option>All terms</option><option>Term 1</option><option>Term 2</option></select></div>
+    <div class="filter"><label>Class</label><select><option>All classes</option><option>Class A</option><option>Class B</option></select></div>
+    <div class="filter"><label>Subject</label><select><option>All subjects</option><option>Mathematics</option><option>Science</option><option>English</option></select></div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="section-row"><div><h2>Workspace connection</h2><div class="sub">Live values remain blank until the signed-in account exposes an accessible Power BI workspace and semantic model.</div></div><button class="btn" id="connect">Connect Power BI</button></div>
+    <div class="callout"><strong>Current build-time state:</strong> no accessible workspace/model is available for live preview. This interface intentionally does not invent student, grade, KPI or refresh values.</div>
+  </div>
+
+  <div class="grid kpis">
+    <div class="card"><div class="kpi-label">Students</div><div class="kpi-value">—</div><div class="kpi-meta">Awaiting semantic model</div><div class="kpi-accent"></div></div>
+    <div class="card"><div class="kpi-label">Average performance</div><div class="kpi-value">—</div><div class="kpi-meta">Existing Power BI measure required</div><div class="kpi-accent mint"></div></div>
+    <div class="card"><div class="kpi-label">At-risk students</div><div class="kpi-value">—</div><div class="kpi-meta">RLS-scoped query required</div><div class="kpi-accent coral"></div></div>
+    <div class="card"><div class="kpi-label">Refresh state</div><div class="kpi-value">—</div><div class="kpi-meta">No live model connected</div><div class="kpi-accent amber"></div></div>
+  </div>
+
+  <div class="grid two" style="margin-top:16px">
+    <div class="card"><div class="section-row"><div><h2>Term trend</h2><div class="sub">Maps to a Power BI line chart using discovered measures.</div></div><span class="badge watch">No data</span></div>
+      <div class="empty" style="min-height:210px"><div><div class="empty-icon">⌁</div><strong>Trend unavailable</strong><p style="margin:8px auto 0">Connect Power BI and select an accessible semantic model.</p></div></div>
+    </div>
+    <div class="card"><div class="section-row"><div><h2>Status distribution</h2><div class="sub">At-risk / watch / on-track / top-performer states.</div></div></div>
+      <div class="empty" style="min-height:210px"><div><div class="empty-icon">◌</div><strong>Distribution unavailable</strong><p style="margin:8px auto 0">No fabricated status counts are shown.</p></div></div>
+    </div>
+  </div>
+
+  <div class="grid two" style="margin-top:16px">
+    <div class="card"><div class="section-row"><div><h2>Subject comparison</h2><div class="sub">Existing measures and discovered subject dimensions drive this view.</div></div></div><div class="empty" style="min-height:180px"><div><strong>Awaiting subject dimension</strong><p style="margin:8px auto 0">Filter values will be validated against discovered Power BI dimensions.</p></div></div></div>
+    <div class="card"><div class="section-row"><div><h2>Attention</h2><div class="sub">Operational signals without pretending to know unavailable data.</div></div></div>
+      <div class="callout" style="margin-bottom:10px">Workspace discovery <strong>needs connection</strong></div>
+      <div class="callout" style="margin-bottom:10px">Semantic model discovery <strong>needs connection</strong></div>
+      <div class="callout">Data quality / refresh metadata <strong>not available</strong></div>
+    </div>
+  </div>
+</div>
+
+<div id="risk" class="view">
+  <div class="hero"><div><div class="eyebrow">Intervention workspace</div><h1>At-Risk Triage</h1><p>Move from cohort-level signals to a student performance profile while retaining the viewer's Power BI permissions and Row-Level Security.</p></div><span class="status-pill"><i class="dot"></i>No live model</span></div>
+  <div class="filters">
+    <div class="filter"><label>Academic Year</label><select><option>All academic years</option></select></div><div class="filter"><label>Term</label><select><option>All terms</option></select></div><div class="filter"><label>Class</label><select><option>All classes</option></select></div><div class="filter"><label>Subject</label><select><option>All subjects</option></select></div>
+  </div>
+  <div class="row-layout">
+    <div class="card table-card">
+      <div class="table-head"><div class="section-row" style="margin:0"><div><h2>At-risk students</h2><div class="sub">Table is populated only from a server-side Power BI query.</div></div><span class="badge danger">Awaiting data</span></div></div>
+      <div class="empty"><div><div class="empty-icon">△</div><strong>No student rows available</strong><p>There is currently no accessible workspace/model in the connected build-time account. Once connected, this table can support sorting, conditional formatting and drillthrough.</p><button class="btn secondary" onclick="toast('Connect Power BI first')">Why is this empty?</button></div></div>
+    </div>
+    <div class="card profile"><div class="section-row"><h2>Selected student</h2><span class="badge watch">No selection</span></div>
+      <div class="empty" style="min-height:340px"><div><div class="big-avatar" style="margin:0 auto 14px">?</div><strong>Select a student</strong><p style="margin:8px auto">The profile will show discovered measures, trend, status indicators and subject-level context.</p></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="top" class="view">
+  <div class="hero"><div><div class="eyebrow">Recognition workspace</div><h1>Top Performers</h1><p>Explore a Power BI-backed leaderboard with subject and class comparisons and a selected-student profile.</p></div><span class="status-pill"><i class="dot"></i>No live model</span></div>
+  <div class="filters">
+    <div class="filter"><label>Academic Year</label><select><option>All academic years</option></select></div><div class="filter"><label>Term</label><select><option>All terms</option></select></div><div class="filter"><label>Class</label><select><option>All classes</option></select></div><div class="filter"><label>Subject</label><select><option>All subjects</option></select></div>
+  </div>
+  <div class="grid two">
+    <div class="card table-card">
+      <div class="table-head"><div class="section-row" style="margin:0"><div><h2>Leaderboard</h2><div class="sub">Ranking is generated from an existing Power BI measure, not hardcoded values.</div></div><span class="badge good">RLS scoped</span></div></div>
+      <div class="empty"><div><div class="empty-icon">★</div><strong>Leaderboard awaiting model</strong><p>Connect Power BI to discover the semantic model and existing measures.</p></div></div>
+    </div>
+    <div class="card"><h2>Selected-student profile</h2><div class="empty" style="min-height:300px"><div><strong>No student selected</strong><p style="margin:8px auto">A leaderboard selection will populate this profile.</p></div></div></div>
+  </div>
+  <div class="grid two" style="margin-top:16px">
+    <div class="card"><h2>Subject comparison</h2><div class="empty" style="min-height:200px"><div><strong>Awaiting discovered dimensions</strong><p style="margin:8px auto">Subject values are validated server-side before querying.</p></div></div></div>
+    <div class="card"><h2>Class comparison</h2><div class="empty" style="min-height:200px"><div><strong>Awaiting discovered dimensions</strong><p style="margin:8px auto">No class-level values are fabricated in the preview.</p></div></div></div>
+  </div>
+</div>
+
+<div id="project" class="view">
+  <div class="hero"><div><div class="eyebrow">Build dossier</div><h1>Project</h1><p>A transparent map of what the application does, how the Power BI connection works, what is safe to expose to the browser, and what remains external setup.</p></div></div>
+  <div class="project-grid">
+    <div class="card"><h2>Purpose</h2><details open><summary>Why this exists</summary><div class="detail">A coordinated education analytics application for advisors and academic leaders. It turns the user's permitted Power BI data into three focused workflows: cohort overview, intervention triage and recognition of top performers.</div></details><details><summary>Core principle</summary><div class="detail">The application is a presentation and interaction layer over the signed-in user's Power BI access. It should not invent a second source of truth or bypass Power BI permissions.</div></details></div>
+    <div class="card"><h2>How it works</h2><details open><summary>1 · Identity</summary><div class="detail">Microsoft sign-in establishes a stable application identity for the advisor or leader.</div></details><details><summary>2 · Connection</summary><div class="detail">A connect/reconnect lifecycle associates the signed-in user with their permitted Power BI access.</div></details><details><summary>3 · Discovery</summary><div class="detail">Workspaces and semantic models are discovered at runtime. Existing model metadata and measures are queried rather than assuming hardcoded table or measure names.</div></details><details><summary>4 · Query</summary><div class="detail">Power BI requests execute server-side. Dimension filter values are validated against discovered values, while viewer permissions and RLS remain effective.</div></details></div>
+    <div class="card wide"><h2>Technical stack</h2><div class="grid three" style="margin-top:16px"><div class="metric"><small>Server architecture</small><strong>TanStack Start</strong><div class="detail">Server functions for OAuth completion and Power BI query handling.</div></div><div class="metric"><small>Storage</small><strong>Server-only</strong><div class="detail">Locked table for encrypted per-user Power BI connection handles.</div></div><div class="metric"><small>Visualization</small><strong>React charts</strong><div class="detail">Cards, slicers, line/bar/donut charts, tables, conditional formatting and drillthrough mappings.</div></div></div></div>
+    <div class="card"><h2>Security boundary</h2><details open><summary>Browser</summary><div class="detail">The browser receives application-safe results and UI state. Provider tokens should never be exposed to client code.</div></details><details><summary>Server</summary><div class="detail">OAuth completion, Power BI requests, filter validation and connection-handle access stay server-side.</div></details><details><summary>RLS</summary><div class="detail">Queries execute in the context of the user's permitted Power BI access, preserving viewer-specific permissions and Row-Level Security.</div></details></div>
+    <div class="card"><h2>Required external setup</h2><div class="callout" style="margin-top:14px"><strong>Microsoft / Power BI OAuth</strong><br>Register the project's connector-gateway callback as an authorized redirect URI in the Microsoft/Power BI OAuth application.</div><details><summary>Callback URI</summary><div class="detail" style="word-break:break-all">https://connector-gateway.lovable.dev/api/v1/app-users/oauth2/callback</div></details><div class="actions"><button class="btn secondary" onclick="navigator.clipboard?.writeText('https://connector-gateway.lovable.dev/api/v1/app-users/oauth2/callback');toast('Callback URI copied')">Copy callback URI</button></div></div>
+    <div class="card wide"><h2>Build status & QA</h2><div class="grid three" style="margin-top:16px"><div class="callout">Route-specific metadata<br><strong>Planned / validated in UI</strong></div><div class="callout">Desktop + mobile layout<br><strong>Responsive</strong></div><div class="callout">Interaction / error boundaries<br><strong>UI states represented</strong></div></div></div>
+  </div>
+</div>
+
+<div id="settings" class="view">
+  <div class="hero"><div><div class="eyebrow">Workspace controls</div><h1>Settings</h1><p>Control presentation preferences and inspect the current connection state without exposing provider credentials.</p></div></div>
+  <div class="settings">
+    <div class="card"><h2>Appearance</h2><div class="setting-row"><div><strong>Dark theme</strong><div class="sub">Switch between warm light and dark surfaces.</div></div><button class="toggle" id="darkToggle"><span></span></button></div><div class="setting-row"><div><strong>Compact navigation</strong><div class="sub">Keep the navigation rail intentionally small.</div></div><button class="toggle on"><span></span></button></div><div class="setting-row"><div><strong>Reduced motion</strong><div class="sub">Respect system reduced-motion preferences.</div></div><button class="toggle"><span></span></button></div></div>
+    <div class="card"><h2>Power BI connection</h2><div class="setting-row"><div><strong>Connection</strong><div class="sub">No accessible workspace/model in current build-time account.</div></div><span class="badge watch">Not connected</span></div><div class="setting-row"><div><strong>Token exposure</strong><div class="sub">Provider tokens are intended to remain server-side.</div></div><span class="badge good">Server only</span></div><div class="actions"><button class="btn" onclick="toast('Connection flow placeholder')">Reconnect Power BI</button><button class="btn secondary" onclick="toast('No live model to refresh')">Refresh metadata</button></div></div>
+  </div>
+</div>
+</section>
+</main>
+</div>
+
+<div class="mobile-nav">
+<button class="active" data-view="overview">⌂<br>Overview</button>
+<button data-view="risk">△<br>Risk</button>
+<button data-view="top">★<br>Top</button>
+<button data-view="project">◇<br>Project</button>
+<button data-view="settings">⚙<br>Settings</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const views={overview:'Overview',risk:'At-Risk Triage',top:'Top Performers',project:'Project',settings:'Settings'};
+function activate(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===name));
+  document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
+  document.getElementById('crumb').textContent=views[name];
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>activate(b.dataset.view)));
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.classList.remove('show'),2400)}
+document.getElementById('theme').onclick=()=>{
+  const dark=document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.toggleAttribute('data-theme',!dark);
+  if(!dark) document.documentElement.setAttribute('data-theme','dark');
+  else document.documentElement.removeAttribute('data-theme');
+  document.getElementById('darkToggle').classList.toggle('on',!dark);
+};
+document.getElementById('darkToggle').onclick=()=>document.getElementById('theme').click();
+document.getElementById('refresh').onclick=()=>toast('No live Power BI model is connected to refresh');
+document.getElementById('connect').onclick=()=>toast('OAuth / Power BI connection flow is ready for backend wiring');
+</script>
+</body>
+</html>

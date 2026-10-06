@@ -1,0 +1,2 @@
+Support Attendance Rate =
+DIVIDE([Support Attended], [Support Assigned])

@@ -1,0 +1,17 @@
+import React from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {Dashboard} from '../frontend/dashboard.jsx';
+import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+const live=JSON.parse(readFileSync('data/dashboard-qa.json','utf8'));
+const html=renderToStaticMarkup(<Dashboard live={live} onStudent={()=>{}} onPage={()=>{}}/>);
+assert.equal(live.students.length,live.summary.total_students);
+for(const title of ['Academic momentum','Student status','Score × attendance','Score distribution','Class comparison','Why students were flagged','Student review queue'])assert.ok(html.includes(title),title);
+assert.ok(html.includes('480 of 480 students'));
+const empty={...live,students:[],summary:{...live.summary,total_students:0,statuses:{},trend:[{term_id:1,average_score:null}]}};
+assert.ok(renderToStaticMarkup(<Dashboard live={empty}/>).includes('No students match this selection'));
+const unsafe={...live,students:[{...live.students[0],name:'<script>alert(1)</script>',current_average:null,attendance:null,trend_delta:null,reason_codes:['MISSING_MARKS']}]};
+const safe=renderToStaticMarkup(<Dashboard live={unsafe}/>);
+assert.ok(!safe.includes('<script>alert(1)</script>'));
+assert.ok(safe.includes('&lt;script&gt;'));
+console.log('React render verified: live 480-student data, seven panels, empty data, missing values, escaped names. Browser interactions and layout remain unverified.');

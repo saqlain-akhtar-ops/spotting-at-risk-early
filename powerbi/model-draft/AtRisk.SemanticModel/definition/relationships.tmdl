@@ -1,0 +1,54 @@
+relationship 0fabcc73-8770-55e4-b7de-8ee2e50456ae
+	fromColumn: Dim_Student.class_id
+	toColumn: Dim_Class.class_id
+	crossFilteringBehavior: oneDirection
+
+relationship 12300a7c-c619-56e3-bdd9-235ddafd829b
+	fromColumn: Fact_Performance.student_id
+	toColumn: Dim_Student.student_id
+	crossFilteringBehavior: oneDirection
+
+relationship 6a2dbf5e-f268-58d3-ae8e-9cac9575ffaf
+	fromColumn: Fact_Status.student_id
+	toColumn: Dim_Student.student_id
+	crossFilteringBehavior: oneDirection
+
+relationship 56726ec9-d83b-5803-8702-e8ea10ed3fc0
+	fromColumn: Fact_Intervention.student_id
+	toColumn: Dim_Student.student_id
+	crossFilteringBehavior: oneDirection
+
+relationship e4c5f252-cd52-57c7-b29d-ff17926d700b
+	fromColumn: Fact_Submission.student_id
+	toColumn: Dim_Student.student_id
+	crossFilteringBehavior: oneDirection
+
+relationship e31ea307-7de9-5557-8319-ae67f57bd3d6
+	fromColumn: Fact_Report.student_id
+	toColumn: Dim_Student.student_id
+	crossFilteringBehavior: oneDirection
+
+relationship d860bd34-975c-5834-89df-c10e984f22b0
+	fromColumn: Fact_Performance.subject_id
+	toColumn: Dim_Subject.subject_id
+	crossFilteringBehavior: oneDirection
+
+relationship 6ba7d1cb-dd62-540a-af64-811e4531b33d
+	fromColumn: Fact_Intervention.subject_id
+	toColumn: Dim_Subject.subject_id
+	crossFilteringBehavior: oneDirection
+
+relationship 1210b074-5b64-5daf-85e3-9d3c7331173f
+	fromColumn: Fact_Performance.term_id
+	toColumn: Dim_Term.term_id
+	crossFilteringBehavior: oneDirection
+
+relationship f1c66eb9-8567-55cb-a7b9-56a924fe1712
+	fromColumn: Fact_Status.term_id
+	toColumn: Dim_Term.term_id
+	crossFilteringBehavior: oneDirection
+
+relationship f8618fde-08b4-5ad1-9bed-e19533b2e55e
+	fromColumn: Fact_Report.term_id
+	toColumn: Dim_Term.term_id
+	crossFilteringBehavior: oneDirection

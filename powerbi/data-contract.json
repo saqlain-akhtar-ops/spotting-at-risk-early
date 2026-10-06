@@ -1,0 +1,115 @@
+{
+  "Dim_Class": {
+    "columns": [
+      "class_id",
+      "class_name",
+      "advisor_id"
+    ],
+    "query_file": "analytics\\powerquery\\Dim_Class.pq",
+    "grain": "dimension or access mapping"
+  },
+  "Dim_Student": {
+    "columns": [
+      "student_id",
+      "name",
+      "class_id",
+      "academic_year"
+    ],
+    "query_file": "analytics\\powerquery\\Dim_Student.pq",
+    "grain": "dimension or access mapping"
+  },
+  "Dim_Subject": {
+    "columns": [
+      "subject_id",
+      "name"
+    ],
+    "query_file": "analytics\\powerquery\\Dim_Subject.pq",
+    "grain": "dimension or access mapping"
+  },
+  "Dim_Term": {
+    "columns": [
+      "term_id",
+      "term_name",
+      "academic_year"
+    ],
+    "query_file": "analytics\\powerquery\\Dim_Term.pq",
+    "grain": "dimension or access mapping"
+  },
+  "Dim_UserAccess": {
+    "columns": [
+      "email",
+      "student_id",
+      "class_id",
+      "role"
+    ],
+    "query_file": "analytics\\powerquery\\Dim_UserAccess.pq",
+    "grain": "dimension or access mapping"
+  },
+  "Fact_Intervention": {
+    "columns": [
+      "enrollment_id",
+      "student_id",
+      "extra_class_id",
+      "subject_id",
+      "attendance",
+      "outcome",
+      "status_before",
+      "state"
+    ],
+    "query_file": "analytics\\powerquery\\Fact_Intervention.pq",
+    "grain": "student \u00d7 extra class"
+  },
+  "Fact_Performance": {
+    "columns": [
+      "performance_id",
+      "student_id",
+      "class_id",
+      "subject_id",
+      "term_id",
+      "score",
+      "attendance"
+    ],
+    "query_file": "analytics\\powerquery\\Fact_Performance.pq",
+    "grain": "student \u00d7 subject \u00d7 term"
+  },
+  "Fact_Report": {
+    "columns": [
+      "report_id",
+      "student_id",
+      "term_id",
+      "released",
+      "version"
+    ],
+    "query_file": "analytics\\powerquery\\Fact_Report.pq",
+    "grain": "report version"
+  },
+  "Fact_Status": {
+    "columns": [
+      "student_id",
+      "term_id",
+      "current_average",
+      "prior_average",
+      "trend_delta",
+      "attendance",
+      "status",
+      "rule_version",
+      "review_required",
+      "top_decile_cutoff",
+      "reason_codes"
+    ],
+    "query_file": "analytics\\powerquery\\Fact_Status.pq",
+    "grain": "student \u00d7 term"
+  },
+  "Fact_Submission": {
+    "columns": [
+      "submission_id",
+      "student_id",
+      "assignment_id",
+      "status",
+      "version_no",
+      "submitted_at"
+    ],
+    "query_file": "analytics\\powerquery\\Fact_Submission.pq",
+    "grain": "submission version"
+  }
+}

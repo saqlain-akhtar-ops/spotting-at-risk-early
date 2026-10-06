@@ -1,0 +1,72 @@
+table Fact_Intervention
+	lineageTag: 832dd433-13df-572c-afae-7f993bb690c5
+
+	column enrollment_id
+		dataType: int64
+		sourceColumn: enrollment_id
+		summarizeBy: none
+
+	column student_id
+		dataType: int64
+		sourceColumn: student_id
+		summarizeBy: none
+
+	column extra_class_id
+		dataType: int64
+		sourceColumn: extra_class_id
+		summarizeBy: none
+
+	column subject_id
+		dataType: int64
+		sourceColumn: subject_id
+		summarizeBy: none
+
+	column attendance
+		dataType: string
+		sourceColumn: attendance
+		summarizeBy: none
+
+	column outcome
+		dataType: string
+		sourceColumn: outcome
+		summarizeBy: none
+
+	column status_before
+		dataType: string
+		sourceColumn: status_before
+		summarizeBy: none
+
+	column state
+		dataType: string
+		sourceColumn: state
+		summarizeBy: none
+
+	measure 'Students in Support' =
+			DISTINCTCOUNT(Fact_Intervention[student_id])
+		formatString: #,0
+
+	measure 'Extra Classes Pending' =
+			CALCULATE(DISTINCTCOUNT(Fact_Intervention[extra_class_id]), Fact_Intervention[state] = "SCHEDULED")
+		formatString: #,0
+
+	measure 'Support Assigned' =
+			COUNTROWS(Fact_Intervention)
+		formatString: #,0
+
+	measure 'Support Attended' =
+			CALCULATE(COUNTROWS(Fact_Intervention), Fact_Intervention[attendance] IN { "PRESENT", "LATE" })
+		formatString: #,0
+
+	measure 'Support Attendance Rate' =
+			DIVIDE([Support Attended], [Support Assigned])
+		formatString: 0.0%
+
+	partition Fact_Intervention = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:/Users/91731/OneDrive/Desktop/Dummy_hackathon/files/PowerBI_AtRisk_2026-10-06/csv/Fact_Intervention.csv"), [Delimiter=",", Columns=8, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    Headers = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    Typed = Table.TransformColumnTypes(Headers, {{"enrollment_id", Int64.Type}, {"student_id", Int64.Type}, {"extra_class_id", Int64.Type}, {"subject_id", Int64.Type}, {"attendance", type text}, {"outcome", type text}, {"status_before", type text}, {"state", type text}}, "en-US")
+				in
+				    Typed

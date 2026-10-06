@@ -1,0 +1,82 @@
+table Fact_Performance
+	lineageTag: 8e408d84-46c6-5203-b5ec-cb1a4b1c1c55
+
+	column performance_id
+		dataType: int64
+		sourceColumn: performance_id
+		summarizeBy: none
+
+	column student_id
+		dataType: int64
+		sourceColumn: student_id
+		summarizeBy: none
+
+	column class_id
+		dataType: int64
+		sourceColumn: class_id
+		summarizeBy: none
+
+	column subject_id
+		dataType: int64
+		sourceColumn: subject_id
+		summarizeBy: none
+
+	column term_id
+		dataType: int64
+		sourceColumn: term_id
+		summarizeBy: none
+
+	column score
+		dataType: double
+		sourceColumn: score
+		summarizeBy: none
+
+	column attendance
+		dataType: double
+		sourceColumn: attendance
+		summarizeBy: none
+
+	measure 'Reporting Term' =
+			COALESCE(SELECTEDVALUE(Dim_Term[term_id]), CALCULATE(MAX(Dim_Term[term_id]), REMOVEFILTERS(Dim_Term)))
+		formatString: #,0
+
+	measure 'Total Students' =
+			DISTINCTCOUNT(Dim_Student[student_id])
+		formatString: #,0
+
+	measure 'Average Score' =
+			VAR T = [Reporting Term]
+			VAR CompleteStudents = CALCULATETABLE(VALUES(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, Fact_Status[status] <> "Insufficient Data")
+			RETURN CALCULATE(AVERAGE(Fact_Performance[score]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, TREATAS(CompleteStudents, Dim_Student[student_id]))
+		formatString: 0.00
+
+	measure 'Average Attendance' =
+			VAR T = [Reporting Term]
+			RETURN CALCULATE(AVERAGE(Fact_Performance[attendance]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T)
+		formatString: 0.00
+
+	measure 'Prior Term Score' =
+			VAR T = [Reporting Term]
+			VAR P = MAXX(FILTER(ALL(Dim_Term), Dim_Term[term_id] < T), Dim_Term[term_id])
+			VAR CompleteStudents = CALCULATETABLE(VALUES(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = P, Fact_Status[status] <> "Insufficient Data")
+			RETURN IF(NOT ISBLANK(P), CALCULATE(AVERAGE(Fact_Performance[score]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = P, TREATAS(CompleteStudents, Dim_Student[student_id])))
+		formatString: 0.00
+
+	measure 'Score Trend' =
+			IF(NOT ISBLANK([Prior Term Score]), [Average Score] - [Prior Term Score])
+		formatString: 0.00
+
+	measure 'Average Score by Term' =
+			VAR CompleteStudents = CALCULATETABLE(VALUES(Fact_Status[student_id]), Fact_Status[status] <> "Insufficient Data")
+			RETURN CALCULATE(AVERAGE(Fact_Performance[score]), TREATAS(CompleteStudents, Dim_Student[student_id]))
+		formatString: 0.00
+
+	partition Fact_Performance = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:/Users/91731/OneDrive/Documents/ChatGPT/MIH_26/analytics/export/Fact_Performance.csv"), [Delimiter=",", Columns=7, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    Headers = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    Typed = Table.TransformColumnTypes(Headers, {{"performance_id", Int64.Type}, {"student_id", Int64.Type}, {"class_id", Int64.Type}, {"subject_id", Int64.Type}, {"term_id", Int64.Type}, {"score", type number}, {"attendance", type number}}, "en-US")
+				in
+				    Typed

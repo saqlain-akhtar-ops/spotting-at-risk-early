@@ -1,0 +1,2 @@
+Score Trend =
+IF(NOT ISBLANK([Prior Term Score]), [Average Score] - [Prior Term Score])

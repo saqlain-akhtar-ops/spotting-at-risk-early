@@ -1,0 +1,12 @@
+.runtime/
+.venv/
+__pycache__/
+.pytest_cache/
+data/
+.env
+analytics/export/
+*.log
+deliverables/
+node_modules/
+analytics/local-review/
+analytics/AtRiskModel/

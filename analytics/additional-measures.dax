@@ -1,0 +1,25 @@
+-- DRAFT visual measures. Add each measure to the indicated table.
+DEFINE
+    MEASURE Fact_Status[At Risk Rate] = DIVIDE([At Risk Students], [Total Students])
+    MEASURE Fact_Status[Slow Learner Rate] = DIVIDE([Slow Learners], [Total Students])
+    MEASURE Fact_Status[Top Performer Rate] = DIVIDE([Top Performers], [Total Students])
+    MEASURE Fact_Status[Status Count] =
+        VAR T = [Reporting Term]
+        RETURN CALCULATE(DISTINCTCOUNT(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T)
+    MEASURE Fact_Status[Status Share] =
+        DIVIDE([Status Count], CALCULATE([Status Count], REMOVEFILTERS(Fact_Status[status])))
+    MEASURE Fact_Status[Low Attendance Students] =
+        VAR T = [Reporting Term]
+        RETURN CALCULATE(DISTINCTCOUNT(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, FILTER(Fact_Status, NOT ISBLANK(Fact_Status[attendance]) && Fact_Status[attendance] < 75))
+    MEASURE Fact_Status[Complete Score Coverage] =
+        DIVIDE([Total Students] - COALESCE([Insufficient Data Students], 0), [Total Students])
+    MEASURE Fact_Intervention[Support Coverage] = DIVIDE([Students in Support], [Total Students])
+    MEASURE Fact_Report[Students with Released Reports] =
+        VAR T = [Reporting Term]
+        RETURN CALCULATE(DISTINCTCOUNT(Fact_Report[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, Fact_Report[released] = 1)
+    MEASURE Fact_Report[Reports Awaiting Release] = [Students with Reports] - COALESCE([Students with Released Reports], 0)
+    MEASURE Fact_Report[Report Release Coverage] = DIVIDE([Students with Released Reports], [Total Students])
+    MEASURE Fact_Status[Status Color] =
+        SWITCH([Current Student Status], "At Risk", "#EF776B", "Watch", "#EFB64F", "On Track", "#5BC9A9", "Top Performer", "#3157D5", "Slow Learner", "#9D8CF5", "#8791A5")
+    MEASURE Fact_Performance[Trend Label] =
+        IF(ISBLANK([Score Trend]), "Prior score unavailable", FORMAT([Score Trend], "+0.0;-0.0;0.0") & " points")

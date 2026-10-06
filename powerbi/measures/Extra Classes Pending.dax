@@ -1,0 +1,2 @@
+Extra Classes Pending =
+CALCULATE(DISTINCTCOUNT(Fact_Intervention[extra_class_id]), Fact_Intervention[state] = "SCHEDULED")

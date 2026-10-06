@@ -1,0 +1,42 @@
+table Fact_Submission
+	lineageTag: 0907bec9-160e-5af8-bcff-24f843e865ac
+
+	column submission_id
+		dataType: int64
+		sourceColumn: submission_id
+		summarizeBy: none
+
+	column student_id
+		dataType: int64
+		sourceColumn: student_id
+		summarizeBy: none
+
+	column assignment_id
+		dataType: int64
+		sourceColumn: assignment_id
+		summarizeBy: none
+
+	column status
+		dataType: string
+		sourceColumn: status
+		summarizeBy: none
+
+	column version_no
+		dataType: int64
+		sourceColumn: version_no
+		summarizeBy: none
+
+	column submitted_at
+		dataType: string
+		sourceColumn: submitted_at
+		summarizeBy: none
+
+	partition Fact_Submission = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:/Users/91731/OneDrive/Desktop/Dummy_hackathon/files/PowerBI_AtRisk_2026-10-06/csv/Fact_Submission.csv"), [Delimiter=",", Columns=6, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    Headers = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    Typed = Table.TransformColumnTypes(Headers, {{"submission_id", Int64.Type}, {"student_id", Int64.Type}, {"assignment_id", Int64.Type}, {"status", type text}, {"version_no", Int64.Type}, {"submitted_at", type text}}, "en-US")
+				in
+				    Typed

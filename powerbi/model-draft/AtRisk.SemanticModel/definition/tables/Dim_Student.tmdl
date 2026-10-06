@@ -1,0 +1,33 @@
+table Dim_Student
+	lineageTag: 8d54727a-20e7-528b-a763-52216eed324c
+
+	column student_id
+		dataType: int64
+		sourceColumn: student_id
+		summarizeBy: none
+		isKey
+
+	column name
+		dataType: string
+		sourceColumn: name
+		summarizeBy: none
+
+	column class_id
+		dataType: int64
+		sourceColumn: class_id
+		summarizeBy: none
+
+	column academic_year
+		dataType: string
+		sourceColumn: academic_year
+		summarizeBy: none
+
+	partition Dim_Student = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:/Users/91731/OneDrive/Desktop/Dummy_hackathon/files/PowerBI_AtRisk_2026-10-06/csv/Dim_Student.csv"), [Delimiter=",", Columns=4, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    Headers = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    Typed = Table.TransformColumnTypes(Headers, {{"student_id", Int64.Type}, {"name", type text}, {"class_id", Int64.Type}, {"academic_year", type text}}, "en-US")
+				in
+				    Typed

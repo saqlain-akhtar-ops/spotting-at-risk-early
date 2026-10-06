@@ -1,0 +1,15 @@
+role StudentAccess
+	modelPermission: read
+
+	tablePermission Dim_UserAccess =
+			LOWER(Dim_UserAccess[email]) = LOWER(USERPRINCIPALNAME())
+
+	tablePermission Dim_Student =
+			VAR Viewer = LOWER(USERPRINCIPALNAME())
+			VAR StudentId = Dim_Student[student_id]
+			RETURN COUNTROWS(FILTER(Dim_UserAccess, LOWER(Dim_UserAccess[email]) = Viewer && Dim_UserAccess[student_id] = StudentId)) > 0
+
+	tablePermission Dim_Class =
+			VAR Viewer = LOWER(USERPRINCIPALNAME())
+			VAR ClassId = Dim_Class[class_id]
+			RETURN COUNTROWS(FILTER(Dim_UserAccess, LOWER(Dim_UserAccess[email]) = Viewer && Dim_UserAccess[class_id] = ClassId)) > 0

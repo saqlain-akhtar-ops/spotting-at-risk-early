@@ -1,0 +1,2 @@
+Reporting Term =
+COALESCE(SELECTEDVALUE(Dim_Term[term_id]), CALCULATE(MAX(Dim_Term[term_id]), REMOVEFILTERS(Dim_Term)))

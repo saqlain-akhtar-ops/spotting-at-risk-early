@@ -1,0 +1,2 @@
+Top Performer Rate =
+DIVIDE([Top Performers], [Total Students])

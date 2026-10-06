@@ -1,0 +1,58 @@
+-- DRAFT. Import CSVs, establish documented relationships, and validate in Desktop.
+-- Current-term KPIs default to the latest available term when no term is selected.
+-- Scores are in percentage points (0..100), so format 0.0 rather than Percentage.
+
+DEFINE
+    MEASURE Fact_Performance[Reporting Term] =
+        COALESCE(SELECTEDVALUE(Dim_Term[term_id]), CALCULATE(MAX(Dim_Term[term_id]), REMOVEFILTERS(Dim_Term)))
+    MEASURE Fact_Performance[Total Students] =
+        DISTINCTCOUNT(Dim_Student[student_id])
+    MEASURE Fact_Performance[Average Score] =
+        VAR T = [Reporting Term]
+        VAR CompleteStudents = CALCULATETABLE(VALUES(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, Fact_Status[status] <> "Insufficient Data")
+        RETURN CALCULATE(AVERAGE(Fact_Performance[score]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, TREATAS(CompleteStudents, Dim_Student[student_id]))
+    MEASURE Fact_Performance[Average Attendance] =
+        VAR T = [Reporting Term]
+        RETURN CALCULATE(AVERAGE(Fact_Performance[attendance]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T)
+    MEASURE Fact_Performance[Prior Term Score] =
+        VAR T = [Reporting Term]
+        VAR P = MAXX(FILTER(ALL(Dim_Term), Dim_Term[term_id] < T), Dim_Term[term_id])
+        VAR CompleteStudents = CALCULATETABLE(VALUES(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = P, Fact_Status[status] <> "Insufficient Data")
+        RETURN IF(NOT ISBLANK(P), CALCULATE(AVERAGE(Fact_Performance[score]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = P, TREATAS(CompleteStudents, Dim_Student[student_id])))
+    MEASURE Fact_Performance[Score Trend] =
+        IF(NOT ISBLANK([Prior Term Score]), [Average Score] - [Prior Term Score])
+    MEASURE Fact_Status[At Risk Students] =
+        VAR T = [Reporting Term]
+        RETURN CALCULATE(DISTINCTCOUNT(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, Fact_Status[status] = "At Risk")
+    MEASURE Fact_Status[Slow Learners] =
+        VAR T = [Reporting Term]
+        RETURN CALCULATE(DISTINCTCOUNT(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, Fact_Status[status] = "Slow Learner")
+    MEASURE Fact_Status[Watch Students] =
+        VAR T = [Reporting Term]
+        RETURN CALCULATE(DISTINCTCOUNT(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, Fact_Status[status] = "Watch")
+    MEASURE Fact_Status[On Track Students] =
+        VAR T = [Reporting Term]
+        RETURN CALCULATE(DISTINCTCOUNT(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, Fact_Status[status] = "On Track")
+    MEASURE Fact_Status[Top Performers] =
+        VAR T = [Reporting Term]
+        RETURN CALCULATE(DISTINCTCOUNT(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, Fact_Status[status] = "Top Performer")
+    MEASURE Fact_Status[Insufficient Data Students] =
+        VAR T = [Reporting Term]
+        RETURN CALCULATE(DISTINCTCOUNT(Fact_Status[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T, Fact_Status[status] = "Insufficient Data")
+    MEASURE Fact_Status[Current Student Status] =
+        VAR T = [Reporting Term]
+        RETURN IF(HASONEVALUE(Dim_Student[student_id]), CALCULATE(SELECTEDVALUE(Fact_Status[status]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T))
+    MEASURE Fact_Performance[Average Score by Term] =
+        VAR CompleteStudents = CALCULATETABLE(VALUES(Fact_Status[student_id]), Fact_Status[status] <> "Insufficient Data")
+        RETURN CALCULATE(AVERAGE(Fact_Performance[score]), TREATAS(CompleteStudents, Dim_Student[student_id]))
+    MEASURE Fact_Intervention[Students in Support] = DISTINCTCOUNT(Fact_Intervention[student_id])
+    MEASURE Fact_Intervention[Extra Classes Pending] = CALCULATE(DISTINCTCOUNT(Fact_Intervention[extra_class_id]), Fact_Intervention[state] = "SCHEDULED")
+    MEASURE Fact_Intervention[Support Assigned] = COUNTROWS(Fact_Intervention)
+    MEASURE Fact_Intervention[Support Attended] = CALCULATE(COUNTROWS(Fact_Intervention), Fact_Intervention[attendance] IN { "PRESENT", "LATE" })
+    MEASURE Fact_Intervention[Support Attendance Rate] = DIVIDE([Support Attended], [Support Assigned])
+    MEASURE Fact_Report[Students with Reports] =
+        VAR T = [Reporting Term]
+        RETURN CALCULATE(DISTINCTCOUNT(Fact_Report[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T)
+    MEASURE Fact_Report[Reports Pending] = [Total Students] - COALESCE([Students with Reports], 0)
+EVALUATE
+    ROW("Students", [Total Students], "Average Score", [Average Score], "At Risk", [At Risk Students], "Slow Learner", [Slow Learners])

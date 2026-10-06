@@ -1,0 +1,16 @@
+-- Dynamic StudentAccess role: apply these table filters in Manage roles.
+-- Dim_UserAccess is disconnected. Filter every dimension that exposes cohort metadata.
+-- Every fact must have an active single-direction relationship from Dim_Student.
+
+-- Dim_UserAccess:
+LOWER(Dim_UserAccess[email]) = LOWER(USERPRINCIPALNAME())
+
+-- Dim_Student:
+VAR Viewer = LOWER(USERPRINCIPALNAME())
+VAR StudentId = Dim_Student[student_id]
+RETURN COUNTROWS(FILTER(Dim_UserAccess, LOWER(Dim_UserAccess[email]) = Viewer && Dim_UserAccess[student_id] = StudentId)) > 0
+
+-- Dim_Class:
+VAR Viewer = LOWER(USERPRINCIPALNAME())
+VAR ClassId = Dim_Class[class_id]
+RETURN COUNTROWS(FILTER(Dim_UserAccess, LOWER(Dim_UserAccess[email]) = Viewer && Dim_UserAccess[class_id] = ClassId)) > 0

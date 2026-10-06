@@ -1,0 +1,46 @@
+table Fact_Report
+	lineageTag: 8785d913-50fd-5e5f-9f65-171d39139363
+
+	column report_id
+		dataType: int64
+		sourceColumn: report_id
+		summarizeBy: none
+
+	column student_id
+		dataType: int64
+		sourceColumn: student_id
+		summarizeBy: none
+
+	column term_id
+		dataType: int64
+		sourceColumn: term_id
+		summarizeBy: none
+
+	column released
+		dataType: int64
+		sourceColumn: released
+		summarizeBy: none
+
+	column version
+		dataType: int64
+		sourceColumn: version
+		summarizeBy: none
+
+	measure 'Students with Reports' =
+			VAR T = [Reporting Term]
+			RETURN CALCULATE(DISTINCTCOUNT(Fact_Report[student_id]), REMOVEFILTERS(Dim_Term), Dim_Term[term_id] = T)
+		formatString: #,0
+
+	measure 'Reports Pending' =
+			[Total Students] - COALESCE([Students with Reports], 0)
+		formatString: #,0
+
+	partition Fact_Report = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:/Users/91731/OneDrive/Desktop/Dummy_hackathon/files/PowerBI_AtRisk_2026-10-06/csv/Fact_Report.csv"), [Delimiter=",", Columns=5, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    Headers = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    Typed = Table.TransformColumnTypes(Headers, {{"report_id", Int64.Type}, {"student_id", Int64.Type}, {"term_id", Int64.Type}, {"released", Int64.Type}, {"version", Int64.Type}}, "en-US")
+				in
+				    Typed

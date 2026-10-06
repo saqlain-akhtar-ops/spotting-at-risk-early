@@ -1,0 +1,2 @@
+Students in Support =
+DISTINCTCOUNT(Fact_Intervention[student_id])

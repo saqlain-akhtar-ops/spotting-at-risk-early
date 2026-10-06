@@ -1,0 +1,2 @@
+Reports Pending =
+[Total Students] - COALESCE([Students with Reports], 0)
