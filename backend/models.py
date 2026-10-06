@@ -3,8 +3,10 @@ from sqlalchemy import create_engine, event, String, Integer, Float, Text, Forei
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
+load_dotenv(ROOT / '.env.local', override=False)
 DATA = Path(os.getenv('DATA_DIR', str(ROOT / 'data')))
 DATA.mkdir(parents=True,exist_ok=True)
 UPLOADS = DATA / 'uploads'
@@ -103,6 +105,10 @@ class ExtraClass(Base):
     room: Mapped[str] = mapped_column(String(100))
     topic: Mapped[str] = mapped_column(String(250))
     state: Mapped[str] = mapped_column(String(20), default='SCHEDULED')
+    objective: Mapped[str] = mapped_column(Text, default='')
+    created_by: Mapped[int] = mapped_column(ForeignKey('users.id'),nullable=True)
+    created_at: Mapped[str] = mapped_column(String(40),default=now,nullable=True)
+    updated_at: Mapped[str] = mapped_column(String(40),default=now,onupdate=now,nullable=True)
 class Enrollment(Base):
     __tablename__ = 'extra_class_students'
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -121,6 +127,8 @@ class Assignment(Base):
     title: Mapped[str] = mapped_column(String(200))
     due_date: Mapped[str] = mapped_column(String(40))
     instructions: Mapped[str] = mapped_column(Text, default='')
+    student_id: Mapped[int] = mapped_column(ForeignKey('students.id'),nullable=True,index=True)
+    created_at: Mapped[str] = mapped_column(String(40),default=now,nullable=True)
 class Submission(Base):
     __tablename__ = 'submissions'
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -134,6 +142,10 @@ class Submission(Base):
     submitted_at: Mapped[str] = mapped_column(String(40), default=now)
     status: Mapped[str] = mapped_column(String(40), default='SUBMITTED')
     feedback: Mapped[str] = mapped_column(Text, default='')
+    file_hash: Mapped[str] = mapped_column(String(64),nullable=True)
+    marks: Mapped[float] = mapped_column(Float,nullable=True)
+    reviewed_by: Mapped[int] = mapped_column(ForeignKey('users.id'),nullable=True)
+    reviewed_at: Mapped[str] = mapped_column(String(40),nullable=True)
 class Report(Base):
     __tablename__ = 'progress_reports'
     id: Mapped[int] = mapped_column(primary_key=True)

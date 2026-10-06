@@ -26,7 +26,18 @@ settings=load_settings()
 
 @asynccontextmanager
 async def lifespan(app):
-    Base.metadata.create_all(engine)
+    if engine.dialect.name=='mysql':
+        from alembic.config import Config
+        from alembic.script import ScriptDirectory
+        migration_config=Config(str(ROOT/'alembic.ini'))
+        migration_config.set_main_option('script_location',str(ROOT/'database/migrations'))
+        expected=ScriptDirectory.from_config(migration_config).get_current_head()
+        with engine.connect() as connection:
+            try:actual=connection.scalar(text('SELECT version_num FROM alembic_version'))
+            except Exception:raise RuntimeError('MySQL schema is not migrated; run tools/migrate.py upgrade') from None
+        if actual!=expected:raise RuntimeError('MySQL schema needs an upgrade; run tools/migrate.py upgrade')
+    else:
+        Base.metadata.create_all(engine)
     if settings.demo_seed:
         with Session() as db: seed(db)
     if settings.production:
@@ -109,6 +120,8 @@ def assignment_guard(db, user, aid, write=False):
     if write: staff(user); class_guard(db, user, a.class_id)
     elif user.role != 'admin' and not db.scalar(select(Student.id).where(Student.id.in_(scope(db,user)), Student.class_id==a.class_id)):
         raise HTTPException(403, 'Assignment outside your scope')
+    if not write and user.role in ('student','parent') and a.student_id is not None and a.student_id not in scope(db,user):
+        raise HTTPException(403,'Assignment belongs to another student')
     return a
 def require_lookup(db, model, key):
     if not db.get(model, key): raise HTTPException(422, f'Invalid {model.__tablename__} reference')
@@ -225,7 +238,7 @@ def add_extra(body:ExtraInput,user=Depends(actor),db=Depends(database)):
     if body.date<datetime.now().date().isoformat():raise HTTPException(422,'Schedule a future or current date')
     overlaps=list(db.scalars(select(ExtraClass).where(ExtraClass.date==body.date,ExtraClass.state!='CANCELLED',ExtraClass.start_time<body.end_time,ExtraClass.end_time>body.start_time)))
     if any(x.teacher_id==body.teacher_id or (body.room and x.room==body.room) for x in overlaps):raise HTTPException(409,'Teacher or room already booked')
-    e=ExtraClass(**body.model_dump());db.add(e);db.flush();audit(db,user,'CLASS_CREATED','extra_classes',e.id);db.commit();return ok(public(e))
+    e=ExtraClass(**body.model_dump(),created_by=user.id);db.add(e);db.flush();audit(db,user,'CLASS_CREATED','extra_classes',e.id);db.commit();return ok(public(e))
 @app.post('/api/extra-classes/{eid}/students')
 def enroll(eid:int,body:EnrollmentInput,user=Depends(actor),db=Depends(database)):
     e=extra_guard(db,user,eid,True)
@@ -253,10 +266,13 @@ def extra_state(eid:int,body:StateInput,user=Depends(actor),db=Depends(database)
 @app.get('/api/assignments')
 def assignments(user=Depends(actor),db=Depends(database)):
     cids=list(db.scalars(select(Student.class_id).where(Student.id.in_(scope(db,user))).distinct()))
-    return ok([public(a) for a in db.scalars(select(Assignment).where(Assignment.class_id.in_(cids)))])
+    return ok([public(a) for a in db.scalars(select(Assignment).where(Assignment.class_id.in_(cids))) if user.role in ('admin','teacher') or a.student_id is None or a.student_id in scope(db,user)])
 @app.post('/api/assignments')
 def new_assignment(body:AssignmentInput,user=Depends(actor),db=Depends(database)):
     staff(user);class_guard(db,user,body.class_id);require_lookup(db,Subject,body.subject_id)
+    if body.student_id is not None:
+        target=student_guard(db,user,body.student_id)
+        if target.class_id!=body.class_id:raise HTTPException(422,'Assignment student must belong to the selected class')
     a=Assignment(**body.model_dump(),teacher_id=user.id);db.add(a);db.flush();audit(db,user,'ASSIGNMENT_CREATED','assignments',a.id);db.commit();return ok(public(a))
 @app.get('/api/submissions')
 def submissions(user=Depends(actor),db=Depends(database)):
@@ -281,7 +297,8 @@ async def upload(assignment_id:int=Form(...),student_id:int=Form(...),file:Uploa
         except UnicodeDecodeError:valid=False
     if not valid:raise HTTPException(422,'File signature does not match its type')
     stored=secrets.token_hex(20)+ext
-    s=Submission(assignment_id=assignment_id,student_id=student_id,original_filename=filename,stored_filename=stored,mime_type=allowed[ext],file_size=len(content),version_no=len(prior)+1,status='LATE' if datetime.now(timezone.utc)>datetime.fromisoformat(a.due_date) else 'SUBMITTED')
+    if a.student_id is not None and a.student_id!=student_id:raise HTTPException(403,'Assignment belongs to another student')
+    s=Submission(assignment_id=assignment_id,student_id=student_id,original_filename=filename,stored_filename=stored,mime_type=allowed[ext],file_size=len(content),file_hash=hashlib.sha256(content).hexdigest(),version_no=len(prior)+1,status='LATE' if datetime.now(timezone.utc)>datetime.fromisoformat(a.due_date) else 'SUBMITTED')
     path=UPLOADS/stored
     try:
         path.write_bytes(content);db.add(s);db.flush();audit(db,user,'FILE_UPLOADED','submissions',s.id);db.commit()
@@ -304,6 +321,7 @@ def download(subid:int,user=Depends(actor),db=Depends(database)):
 @app.post('/api/submissions/{subid}/review')
 def review(subid:int,body:ReviewInput,user=Depends(actor),db=Depends(database)):
     staff(user);s=submission_guard(db,user,subid);s.status=body.status;s.feedback=body.feedback
+    s.marks=body.marks;s.reviewed_by=user.id;s.reviewed_at=now()
     audit(db,user,'SUBMISSION_REVIEWED','submissions',s.id);db.commit();return ok(public(s,('stored_filename',)))
 
 def report_data(db,sid,tid,comments='',follow_up=''):
@@ -319,7 +337,7 @@ def report_data(db,sid,tid,comments='',follow_up=''):
                 history=[{'term_id':t,**indicators(db,[sid],t)[sid]} for t in db.scalars(select(Term.id)) if t<=tid],
                 support=[{**public(e),'class':public(db.get(ExtraClass,e.extra_class_id))} for e in db.scalars(select(Enrollment).where(Enrollment.student_id==sid))],
                 submissions=[public(x,('stored_filename',)) for x in db.scalars(select(Submission).where(Submission.student_id==sid))],
-                assignments=[public(x) for x in db.scalars(select(Assignment).where(Assignment.class_id==s.class_id))],
+                assignments=[public(x) for x in db.scalars(select(Assignment).where(Assignment.class_id==s.class_id)) if x.student_id is None or x.student_id==sid],
                 comments=comments,follow_up=follow_up,note='Prototype indicators require advisor review. Support changes are descriptive, not causal evidence.')
 @app.get('/api/students/{sid}/progress-report')
 def progress(sid:int,term_id:int|None=None,user=Depends(actor),db=Depends(database)):
@@ -406,6 +424,7 @@ def dashboard(term_id:int|None=None,class_id:int|None=None,subject_id:int|None=N
     pending=0
     for student in rows:
         for a in db.scalars(select(Assignment).where(Assignment.class_id==student['class_id'])):
+            if a.student_id is not None and a.student_id!=student['id']:continue
             if (student['id'],a.id) not in latest_sub or latest_sub[(student['id'],a.id)].status=='RESUBMISSION_REQUESTED':pending+=1
     generated=set(db.scalars(select(Report.student_id).where(Report.student_id.in_(ids),Report.term_id==term)))
     released=set(db.scalars(select(Report.student_id).where(Report.student_id.in_(ids),Report.term_id==term,Report.released==1)))

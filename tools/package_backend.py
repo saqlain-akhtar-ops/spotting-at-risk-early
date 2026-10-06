@@ -8,8 +8,8 @@ parser.add_argument('--output',default='Spotting_AtRisk_Backend_PowerBI.zip')
 args=parser.parse_args()
 OUT=ROOT/'deliverables'/Path(args.output).name
 OUT.parent.mkdir(exist_ok=True)
-folders=['backend','frontend','tools','tests','sources','docs','powerbi','.github','analytics/powerquery','analytics/model-draft']
-files=['Dockerfile','compose.yaml','.dockerignore','.gitattributes','.env.production.example','requirements-runtime.txt','package.json','README.md','requirements.txt','run.py','Start-Project.ps1','.env.example','.gitignore','analytics/LiveDemo.pq','analytics/measures.dax','analytics/additional-measures.dax','analytics/theme.json','analytics/rls.dax','analytics/POWER-BI.md','analytics/data-contract.json']
+folders=['backend','frontend','tools','tests','sources','docs','powerbi','.github','database','analytics/powerquery','analytics/model-draft']
+files=['Dockerfile','compose.yaml','.dockerignore','.gitattributes','.env.production.example','requirements-runtime.txt','package.json','package-lock.json','alembic.ini','README.md','requirements.txt','run.py','Start-Project.ps1','.env.example','.gitignore','analytics/LiveDemo.pq','analytics/measures.dax','analytics/additional-measures.dax','analytics/theme.json','analytics/rls.dax','analytics/POWER-BI.md','analytics/data-contract.json']
 with zipfile.ZipFile(OUT,'w',zipfile.ZIP_DEFLATED) as archive:
     for name in folders:
         for path in (ROOT/name).rglob('*'):

@@ -11,3 +11,7 @@ deliverables/
 node_modules/
 analytics/local-review/
 analytics/AtRiskModel/
+.tooling/
+installers/
+.env.local
+**/.pbi/

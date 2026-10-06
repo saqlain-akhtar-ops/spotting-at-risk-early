@@ -1636,6 +1636,18 @@
             "maxLength": 5000,
             "title": "Instructions",
             "default": ""
+          },
+          "student_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student Id"
           }
         },
         "additionalProperties": false,
@@ -1769,6 +1781,12 @@
             "maxLength": 250,
             "minLength": 1,
             "title": "Topic"
+          },
+          "objective": {
+            "type": "string",
+            "maxLength": 5000,
+            "title": "Objective",
+            "default": ""
           }
         },
         "additionalProperties": false,
@@ -1945,6 +1963,19 @@
             "maxLength": 5000,
             "title": "Feedback",
             "default": ""
+          },
+          "marks": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marks"
           }
         },
         "additionalProperties": false,

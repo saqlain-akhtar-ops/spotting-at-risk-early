@@ -5,6 +5,9 @@ node_modules
 data
 .env
 .env.production
+.env.local
+.tooling
+installers
 deliverables
 **/__pycache__
 .pytest_cache

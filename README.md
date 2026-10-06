@@ -6,6 +6,8 @@ A working REST application that helps teachers spot academic decline early, expl
 
 The included submission uses synthetic records. It is ready to run as a local demonstration. Production configuration and deployment files are supplied, but this release is not a certified or deployed institutional production system. Native Power BI artifacts remain drafts until validated in Desktop.
 
+For separate explanations of the technologies and implementation process, open the [documentation index](docs/README.md). It links to the backend, frontend, database, Power BI, security and project-process READMEs.
+
 ## What the project does
 
 1. Record each student's subject scores and attendance by term.
@@ -127,7 +129,7 @@ Interactive docs: **http://127.0.0.1:8000/docs** in development. Saved OpenAPI c
 | GET | /api/metadata | Permitted classes, subjects, terms and staff options |
 | GET | /api/students | Authorized student list and filters |
 | GET | /api/students/{id} | Student 360 with academic and support evidence |
-| GET | /api/students/{id}/status | Explainable status for a selected term/subject |
+| GET | /api/students/{id}/status | Explainable status for a selected term |
 | PUT | /api/students/{id}/performance | Validate and save scores/attendance; recalculate status snapshots |
 | GET / POST / PUT | /api/students/{id}/parents | Guardian records; updates use a parent ID suffix |
 | GET / POST | /api/extra-classes | List or schedule support sessions |
@@ -160,7 +162,9 @@ The dashboard fetches current database rows ten seconds after each completed pol
 
 ## Database and demo data
 
-Default database: **data/application.db** (SQLite). SQLAlchemy also supports a dedicated MySQL database through DATABASE_URL and PyMySQL. The existing MySQL service was not accessed with unknown credentials.
+This laptop now runs the project on **MySQL 8.0.43**, at **127.0.0.1:3307**, database **spotting_at_risk**. The ignored `.env.local` contains the local connection configuration. The existing MySQL80 service on port 3306 remains separate. All 480 synthetic students and 5,684 assessments were preserved from the original SQLite database. See [MySQL setup and operations](docs/MYSQL-SETUP.md).
+
+Portable installations without `.env.local` still default to **data/application.db** (SQLite). Explicit process environment settings override `.env.local`.
 
 The committed snapshot in [powerbi/csv](powerbi/csv) contains **480 students, six classes, three subjects, four terms, 5,684 performance records and 1,920 student-term status records**. Of 5,760 possible assessments, 76 are intentionally absent. Missing assessments are reported separately and prevent incomplete progress reports.
 
@@ -225,6 +229,6 @@ See [QA evidence](docs/QA.md), [requirement coverage](docs/IMPLEMENTATION.md), [
 
 Production mode refuses demo seeding, insecure cookies, wildcard hosts, an implicit database URL and existing demonstration accounts. Configure a dedicated database, trusted HTTPS proxy, persistent storage and institutional user/access onboarding. Use tools/create_admin.py to provision the first administrator interactively. Environment templates are not loaded automatically; set their values in the process environment or deployment secret manager.
 
-SMTP is in preview mode. Microsoft SSO, institutional onboarding, versioned database migrations, shared rate limiting for replicas, malware scanning, load testing, tested backup restoration and native Power BI validation remain deployment work. Browser tooling blocked local preview access for the new React version, so its click interactions, animations and mobile layout have not been visually verified. Docker and MySQL deployment have not been executed here.
+SMTP is in preview mode. Microsoft SSO, institutional onboarding, shared rate limiting for replicas, malware scanning, load testing, tested backup restoration and native Power BI validation remain deployment work. Versioned migrations were applied and verified on the dedicated local MySQL database. Browser tooling blocked local preview access for the new React version, so its click interactions, animations and mobile layout have not been visually verified. Docker deployment has not been executed here.
 
 The submission therefore demonstrates the complete implemented academic-support workflow and provides deployment controls, while clearly separating tested behavior from external production validation.

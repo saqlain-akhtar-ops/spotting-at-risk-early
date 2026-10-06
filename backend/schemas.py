@@ -31,6 +31,7 @@ class ExtraInput(Strict):
     end_time: str
     room: str = Field(default='', max_length=100)
     topic: str = Field(min_length=1, max_length=250)
+    objective: str = Field(default='',max_length=5000)
     @field_validator('date')
     @classmethod
     def valid_date(cls, v):
@@ -46,6 +47,7 @@ class AssignmentInput(Strict):
     title: str = Field(min_length=1, max_length=200)
     due_date: str
     instructions: str = Field(default='', max_length=5000)
+    student_id: int | None = Field(default=None,gt=0)
     @field_validator('due_date')
     @classmethod
     def due(cls, v):
@@ -60,6 +62,7 @@ class AttendanceInput(Strict):
 class ReviewInput(Strict):
     status: str = Field(pattern='^(UNDER_REVIEW|REVIEWED|RESUBMISSION_REQUESTED)$')
     feedback: str = Field(default='', max_length=5000)
+    marks: float | None = Field(default=None,ge=0,le=100)
 class StateInput(Strict):
     state: str = Field(pattern='^(SCHEDULED|COMPLETED|CANCELLED)$')
 class ReportInput(Strict):

@@ -75,23 +75,6 @@ CREATE TABLE sessions (
 ;
 
 
-CREATE TABLE assignments (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	subject_id INTEGER NOT NULL, 
-	teacher_id INTEGER NOT NULL, 
-	class_id INTEGER NOT NULL, 
-	title VARCHAR(200) NOT NULL, 
-	due_date VARCHAR(40) NOT NULL, 
-	instructions TEXT NOT NULL, 
-	PRIMARY KEY (id), 
-	FOREIGN KEY(subject_id) REFERENCES subjects (id), 
-	FOREIGN KEY(teacher_id) REFERENCES users (id), 
-	FOREIGN KEY(class_id) REFERENCES classes (id)
-)
-
-;
-
-
 CREATE TABLE extra_classes (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	subject_id INTEGER NOT NULL, 
@@ -103,10 +86,15 @@ CREATE TABLE extra_classes (
 	room VARCHAR(100) NOT NULL, 
 	topic VARCHAR(250) NOT NULL, 
 	state VARCHAR(20) NOT NULL, 
+	objective TEXT NOT NULL, 
+	created_by INTEGER, 
+	created_at VARCHAR(40), 
+	updated_at VARCHAR(40), 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(subject_id) REFERENCES subjects (id), 
 	FOREIGN KEY(teacher_id) REFERENCES users (id), 
-	FOREIGN KEY(class_id) REFERENCES classes (id)
+	FOREIGN KEY(class_id) REFERENCES classes (id), 
+	FOREIGN KEY(created_by) REFERENCES users (id)
 )
 
 ;
@@ -124,6 +112,28 @@ CREATE TABLE students (
 ;
 
 CREATE INDEX ix_students_class_id ON students (class_id);
+
+
+CREATE TABLE assignments (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	subject_id INTEGER NOT NULL, 
+	teacher_id INTEGER NOT NULL, 
+	class_id INTEGER NOT NULL, 
+	title VARCHAR(200) NOT NULL, 
+	due_date VARCHAR(40) NOT NULL, 
+	instructions TEXT NOT NULL, 
+	student_id INTEGER, 
+	created_at VARCHAR(40), 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(subject_id) REFERENCES subjects (id), 
+	FOREIGN KEY(teacher_id) REFERENCES users (id), 
+	FOREIGN KEY(class_id) REFERENCES classes (id), 
+	FOREIGN KEY(student_id) REFERENCES students (id)
+)
+
+;
+
+CREATE INDEX ix_assignments_student_id ON assignments (student_id);
 
 
 CREATE TABLE extra_class_students (
@@ -223,29 +233,6 @@ CREATE TABLE student_status (
 CREATE INDEX ix_student_status_student_id ON student_status (student_id);
 
 
-CREATE TABLE submissions (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	assignment_id INTEGER NOT NULL, 
-	student_id INTEGER NOT NULL, 
-	original_filename VARCHAR(200) NOT NULL, 
-	stored_filename VARCHAR(100) NOT NULL, 
-	mime_type VARCHAR(100) NOT NULL, 
-	file_size INTEGER NOT NULL, 
-	version_no INTEGER NOT NULL, 
-	submitted_at VARCHAR(40) NOT NULL, 
-	status VARCHAR(40) NOT NULL, 
-	feedback TEXT NOT NULL, 
-	PRIMARY KEY (id), 
-	FOREIGN KEY(assignment_id) REFERENCES assignments (id), 
-	FOREIGN KEY(student_id) REFERENCES students (id), 
-	UNIQUE (stored_filename)
-)
-
-;
-
-CREATE INDEX ix_submissions_student_id ON submissions (student_id);
-
-
 CREATE TABLE user_access (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	user_id INTEGER NOT NULL, 
@@ -280,3 +267,31 @@ CREATE TABLE notifications (
 )
 
 ;
+
+
+CREATE TABLE submissions (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	assignment_id INTEGER NOT NULL, 
+	student_id INTEGER NOT NULL, 
+	original_filename VARCHAR(200) NOT NULL, 
+	stored_filename VARCHAR(100) NOT NULL, 
+	mime_type VARCHAR(100) NOT NULL, 
+	file_size INTEGER NOT NULL, 
+	version_no INTEGER NOT NULL, 
+	submitted_at VARCHAR(40) NOT NULL, 
+	status VARCHAR(40) NOT NULL, 
+	feedback TEXT NOT NULL, 
+	file_hash VARCHAR(64), 
+	marks FLOAT, 
+	reviewed_by INTEGER, 
+	reviewed_at VARCHAR(40), 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(assignment_id) REFERENCES assignments (id), 
+	FOREIGN KEY(student_id) REFERENCES students (id), 
+	UNIQUE (stored_filename), 
+	FOREIGN KEY(reviewed_by) REFERENCES users (id)
+)
+
+;
+
+CREATE INDEX ix_submissions_student_id ON submissions (student_id);
