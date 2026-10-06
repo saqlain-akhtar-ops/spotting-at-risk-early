@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Spotting the At-Risk Early",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "paths": {
     "/api/auth/login": {
@@ -1580,6 +1580,22 @@
       "get": {
         "summary": "Health",
         "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ready": {
+      "get": {
+        "summary": "Ready",
+        "operationId": "ready_api_ready_get",
         "responses": {
           "200": {
             "description": "Successful Response",

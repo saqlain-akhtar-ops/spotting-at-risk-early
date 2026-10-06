@@ -1,0 +1,13 @@
+.git
+.runtime
+.venv
+node_modules
+data
+.env
+.env.production
+deliverables
+**/__pycache__
+.pytest_cache
+analytics/export
+analytics/local-review
+analytics/AtRiskModel

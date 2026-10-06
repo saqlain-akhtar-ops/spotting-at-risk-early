@@ -12,10 +12,11 @@ The DOCX and three project notebook pages informed the feature specification. Th
 | Extra classes | Subject, teacher, class, date, start/end, room, topic, enrollment, attendance, outcome | Assignment and completion workflow tested; overlap validation |
 | File submission | Private uploads, size/type/signature validation, versioning, review, authorized downloads | Invalid/oversized/spoofed files and unauthorized access tested |
 | Progress reports | Immutable JSON snapshot, teacher notes, follow-up, generation, release, printable HTML | Completeness and release gates tested. Browser print supports Save as PDF |
-| Enhanced dashboard | Eight connected pages, filters, KPIs, status lists, student details | Browser inspection recorded in QA notes |
+| Enhanced dashboard | Eight connected pages, filters, KPIs, status lists, student details and React analytics | Original dashboard inspected; current React build/render verified, browser interactions unverified |
 | Data quality | Duplicates, missing marks, range, orphan checks; missing assessments separate | 5,684 rows checked; no blocking issues; 76 absent assessments |
 | Star schema / DAX / RLS | Validated CSV bridge, Power Query source definitions, DAX measures, role expressions, source-to-model design pack | Draft Power BI artifacts; not imported or validated in Desktop here |
 | Audit | Actor, entity, UTC time and event for sensitive workflows | Audit acceptance checks passed |
+| REST deployment controls | Production guardrails, host validation, streamed body limits, frontend security headers and database readiness | Local automated checks passed; Docker/MySQL/HTTPS deployment unverified |
 | GitHub | Version-control-ready local source and workflow guide | Connector returned no accessible repositories; no push performed |
 
 ## Exact prototype status policy

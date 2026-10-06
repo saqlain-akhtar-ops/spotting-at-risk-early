@@ -4,6 +4,7 @@ from collections import Counter
 from sqlalchemy import select, func
 from .models import *
 from .status import indicators
+from .powerbi import COLUMNS
 
 EXPORT=ROOT/'analytics'/'export'
 def quality(db):
@@ -37,7 +38,7 @@ def export_data(db):
         'Fact_Submission':[{'submission_id':s.id,'student_id':s.student_id,'assignment_id':s.assignment_id,'status':s.status,'version_no':s.version_no,'submitted_at':s.submitted_at} for s in db.scalars(select(Submission))],
         'Fact_Report':[{'report_id':r.id,'student_id':r.student_id,'term_id':r.term_id,'released':r.released,'version':r.version} for r in db.scalars(select(Report))]
     }
-    defaults={'Fact_Submission':['submission_id','student_id','assignment_id','status','version_no','submitted_at'],'Fact_Report':['report_id','student_id','term_id','released','version']}
+    defaults=COLUMNS
     manifest={'created_at':now(),'source':'Synthetic data','data_quality':check,'tables':{}}
     for name,rows in tables.items():
         path=EXPORT/f'{name}.csv';fields=list(rows[0]) if rows else defaults[name]

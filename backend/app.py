@@ -18,14 +18,28 @@ from .schemas import (LoginInput, StudentInput, ParentInput, ExtraInput, Assignm
     EnrollmentInput, AttendanceInput, ReviewInput, StateInput, ReportInput, EmailInput, PerformanceInput)
 from .status import indicators, RULE_VERSION, STATUSES
 from .seed import seed
+from .config import load_settings
+from .middleware import RequestSizeLimit
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+from sqlalchemy import text
+settings=load_settings()
 
 @asynccontextmanager
 async def lifespan(app):
     Base.metadata.create_all(engine)
-    if os.getenv('DEMO_SEED', '1') == '1':
+    if settings.demo_seed:
         with Session() as db: seed(db)
+    if settings.production:
+        with Session() as db:
+            if db.scalar(select(User.id).where(User.email.like('%@example.test')).limit(1)):
+                raise RuntimeError('Production cannot start with seeded demonstration accounts; use a dedicated empty database')
     yield
-app = FastAPI(title='Spotting the At-Risk Early', version='1.0.0', lifespan=lifespan)
+app = FastAPI(title='Spotting the At-Risk Early', version='1.1.0', lifespan=lifespan,
+              docs_url='/docs' if settings.api_docs else None,
+              redoc_url='/redoc' if settings.api_docs else None,
+              openapi_url='/openapi.json' if settings.api_docs else None)
+app.add_middleware(RequestSizeLimit)
+app.add_middleware(TrustedHostMiddleware,allowed_hosts=list(settings.allowed_hosts),www_redirect=False)
 def ok(data=None, message='Success'):
     return {'success': True, 'message': message, 'data': data, 'errors': []}
 @app.exception_handler(Exception)
@@ -52,6 +66,11 @@ async def headers_and_limits(request, call_next):
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['Referrer-Policy'] = 'same-origin'
     response.headers['Cache-Control'] = 'no-store'
+    response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
+    if request.url.path=='/':
+        response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    if settings.production and request.url.scheme=='https':
+        response.headers['Strict-Transport-Security']='max-age=31536000'
     return response
 def database():
     with Session() as db:
@@ -112,7 +131,7 @@ def login(body: LoginInput, request:Request, response:Response, db=Depends(datab
     token = secrets.token_urlsafe(32); csrf = secrets.token_urlsafe(24)
     db.add(LoginSession(token_hash=hashlib.sha256(token.encode()).hexdigest(),user_id=user.id,csrf=csrf,expires=time.time()+28800))
     audit(db,user,'LOGIN','users',user.id); db.commit()
-    response.set_cookie('session',token,httponly=True,samesite='strict',secure=os.getenv('COOKIE_SECURE','false')=='true',max_age=28800,path='/')
+    response.set_cookie('session',token,httponly=True,samesite='strict',secure=settings.cookie_secure,max_age=28800,path='/')
     return ok({'user':public(user,('password_hash',)), 'csrf_token':csrf})
 @app.get('/api/auth/me')
 def me(request:Request, user=Depends(actor)):
@@ -421,6 +440,11 @@ install_routes(app,database,actor,ok,dashboard,students)
 
 @app.get('/api/health')
 def health():return ok({'status':'running'})
+@app.get('/api/ready')
+def ready(db=Depends(database)):
+    try:db.execute(text('SELECT 1'))
+    except Exception:raise HTTPException(503,'Database unavailable')
+    return ok({'status':'ready'})
 app.mount('/assets',StaticFiles(directory=ROOT/'frontend'),name='assets')
 @app.get('/',include_in_schema=False)
 def index():return FileResponse(ROOT/'frontend'/'index.html')

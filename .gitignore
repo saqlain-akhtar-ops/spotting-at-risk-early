@@ -4,6 +4,7 @@ __pycache__/
 .pytest_cache/
 data/
 .env
+.env.production
 analytics/export/
 *.log
 deliverables/

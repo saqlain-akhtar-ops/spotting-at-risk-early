@@ -1,3 +1,9 @@
+# Submission release checks — 6 October 2026
+
+Production settings are validated, streamed request limits cover bodies without Content-Length, root responses carry frontend security headers, and /api/ready checks the database. Empty databases now export all ten analytical table headers safely. The final complete suite passed: **19 tests in 65.98 seconds**, with one dependency deprecation warning. Live checks on the restarted server confirmed /api/health, /api/ready, React asset references and the frontend script policy.
+
+The earlier React production bundle and 480-student server render passed. Browser visual/click/mobile QA remains unverified for that version. Docker, MySQL, HTTPS infrastructure, SMTP delivery and native Power BI have not been run here. The submitted ZIP excludes operational databases, credentials, uploads and installed dependencies.
+
 # Verification evidence
 
 Date: 5 October 2026. Local synthetic prototype, Asia/Kolkata user interface; database audit timestamps are UTC.

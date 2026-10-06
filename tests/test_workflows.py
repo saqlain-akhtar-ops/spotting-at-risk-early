@@ -174,3 +174,13 @@ def test_power_query_feed_auth_scope_and_empty_schema(client):
     assert empty['rows']==[] and 'student_id' in empty['columns']
     remote=client.get('http://testserver/api/power-bi/tables/Dim_Student',auth=('admin@example.test','Testing-Only-2026'))
     assert remote.status_code==403
+
+def test_readiness_and_frontend_security_headers(client):
+    assert client.get('/api/health').json()['data']['status']=='running'
+    assert client.get('/api/ready').json()['data']['status']=='ready'
+    response=client.get('/')
+    assert response.status_code==200
+    assert "script-src 'self'" in response.headers['content-security-policy']
+    assert response.headers['x-content-type-options']=='nosniff'
+    assert response.headers['x-frame-options']=='DENY'
+    assert 'camera=()' in response.headers['permissions-policy']

@@ -6,7 +6,7 @@ import os
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = Path(os.getenv('DATA_DIR', str(ROOT / 'data')))
-DATA.mkdir(exist_ok=True)
+DATA.mkdir(parents=True,exist_ok=True)
 UPLOADS = DATA / 'uploads'
 UPLOADS.mkdir(exist_ok=True)
 def now():

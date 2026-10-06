@@ -1,0 +1,18 @@
+services:
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      APP_ENV: development
+      DATABASE_URL: sqlite:////app/data/application.db
+      DATA_DIR: /app/data
+      DEMO_SEED: "1"
+      COOKIE_SECURE: "false"
+      ALLOWED_HOSTS: localhost,127.0.0.1
+      EMAIL_MODE: preview
+    volumes:
+      - student_data:/app/data
+    restart: unless-stopped
+volumes:
+  student_data:
