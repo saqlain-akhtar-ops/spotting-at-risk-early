@@ -5,9 +5,18 @@ async function api(path,method='GET',body){
   const options={method,credentials:'same-origin',headers:{'X-CSRF-Token':csrf}};
   if(body instanceof FormData)options.body=body;
   else if(body!==undefined){options.headers['Content-Type']='application/json';options.body=JSON.stringify(body)}
-  const r=await fetch('/api'+path,options),j=await r.json();
-  if(!r.ok){if(r.status===401)$('#login').hidden=false;throw Error(j.message+(j.errors?.[0]?.message?' — '+j.errors[0].message:''))}
-  return j.data;
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);
+  options.signal=controller.signal;
+  try{
+    const r=await fetch('/api'+path,options);
+    let j;try{j=await r.json()}catch{throw Error('The server returned an unreadable response. Please retry.')}
+    if(!r.ok){
+      if(r.status===401){currentUser=null;csrf='';clearTimeout(liveTimer);$('#login').hidden=false}
+      throw Error((j.message||'Request failed')+(j.errors?.[0]?.message?' — '+j.errors[0].message:''));
+    }
+    return j.data;
+  }catch(e){if(e.name==='AbortError')throw Error('The request timed out. Please retry.');throw e}
+  finally{clearTimeout(timer)}
 }
 const staff=()=>['admin','teacher'].includes(currentUser?.role);
 const pct=v=>v==null?'—':Number(v).toFixed(1)+'%';
@@ -15,7 +24,7 @@ function table(headers,rows){return '<div class="table-wrap"><table><thead><tr>'
 function option(list,key,label){return list.map(x=>`<option value="${x[key]}">${escapeHtml(x[label])}</option>`).join('')}
 function filters(){return new URLSearchParams([...document.querySelectorAll('#filters select')].filter(s=>s.value).map(s=>[s.name,s.value])).toString()}
 function showPage(name){window.scrollTo({top:0,behavior:'instant'});document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===name));document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===name));$('#crumb').textContent=({overview:'Overview',risk:'At-Risk Triage',top:'Top Performers',slow:'Slow Learner Support',support:'Extra Classes',assignments:'Assignments & Submissions',reports:'Progress Reports',student:'Student 360',project:'Project'})[name];if(currentUser)loadPage(name).catch(error);}
-function error(e){toast(e.message);$('#error').textContent=e.message;$('#error').hidden=false}
+function error(e){const target=$('#login').hidden?$('#error'):$('#login-error');target.textContent=e.message;target.hidden=false;if(target.id==='login-error')target.focus();toast(e.message)}
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.classList.remove('show'),3500)}
 function card(label,value){return `<div class="card"><div class="kpi-label">${escapeHtml(label)}</div><div class="kpi-value">${escapeHtml(value)}</div><div class="kpi-accent"></div></div>`}
 function studentTable(rows){return table(['Student','Class','Score','Attendance','Trend','Status','Review'],rows.map(r=>[escapeHtml(r.name),escapeHtml(r.class_name),pct(r.current_average),pct(r.attendance),escapeHtml(r.trend_delta),`<span class="badge ${r.status==='At Risk'?'danger':r.status==='Slow Learner'||r.status==='Watch'?'watch':'good'}">${escapeHtml(r.status)}</span>`,`<button class="btn secondary" data-student="${r.id}">Open</button>`]))}
@@ -38,7 +47,7 @@ async function loadPage(name){
   if(name==='reports')return loadReports();
 }
 async function init(){
-  const auth=await api('/auth/me');currentUser=auth.user;csrf=auth.csrf_token;$('#login').hidden=true;
+  const auth=await api('/auth/me');currentUser=auth.user;csrf=auth.csrf_token;
   $('#identity').textContent=currentUser.name+' · '+currentUser.role;
   meta=await api('/metadata');
   if($('#upload-limit'))$('#upload-limit').textContent='maximum '+Math.floor(meta.upload_max_bytes/(1024*1024))+' MB';
@@ -46,6 +55,7 @@ async function init(){
   document.querySelectorAll('.staff-only').forEach(e=>e.hidden=!staff());document.querySelectorAll('.admin-only').forEach(e=>e.hidden=currentUser.role!=='admin');
   document.querySelectorAll('.subject-options').forEach(e=>e.innerHTML=option(meta.subjects,'id','name'));document.querySelectorAll('.class-options').forEach(e=>e.innerHTML=option(meta.classes,'id','name'));document.querySelectorAll('.teacher-options').forEach(e=>e.innerHTML=option(meta.teachers,'id','name'));document.querySelectorAll('.term-options').forEach(e=>e.innerHTML=option(meta.terms,'id','name'));
   await refresh();
+  $('#login').hidden=true;$('#login-error').hidden=true;
   startLivePolling();
 }
 function startLivePolling(){
@@ -99,7 +109,7 @@ function reportTable(rs){return table(['Student','Term','Version','Generated','S
 async function loadStudentReports(){const rs=await api('/reports');$('#student-reports').innerHTML=reportTable(rs.filter(r=>r.student_id===selected))}
 function formData(form,numbers=[]){const d=Object.fromEntries(new FormData(form));numbers.forEach(k=>d[k]=Number(d[k]));return d}
 function bindForm(id,handler){$(id).addEventListener('submit',async e=>{e.preventDefault();const b=e.target.querySelector('button[type=submit]');if(b)b.disabled=true;try{await handler(e.target);toast('Saved successfully')}catch(err){error(err)}finally{if(b)b.disabled=false}})}
-bindForm('#login-form',async f=>{const d=await api('/auth/login','POST',formData(f));csrf=d.csrf_token;f.reset();await init()});
+bindForm('#login-form',async f=>{const button=f.querySelector('button[type=submit]');$('#login-error').hidden=true;button.textContent='Signing in…';try{const d=await api('/auth/login','POST',formData(f));csrf=d.csrf_token;await init();f.reset()}finally{button.textContent='Sign in'}});
 bindForm('#profile-form',async f=>{await api(`/students/${selected}`,'PUT',formData(f));await loadStudent(selected)});
 bindForm('#parent-form',async f=>{const d=formData(f);const pid=d.parent_id;delete d.parent_id;['primary','consent','active'].forEach(k=>d[k]=f.elements[k].checked);await api(`/students/${selected}/parents`+(pid?'/'+pid:''),pid?'PUT':'POST',d);f.reset();await loadStudent(selected)});
 bindForm('#performance-form',async f=>{const d=formData(f,['subject_id','term_id','attendance']);d.score=d.score===''?null:Number(d.score);await api(`/students/${selected}/performance`,'PUT',d);await loadStudent(selected)});
