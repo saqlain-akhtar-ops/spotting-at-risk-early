@@ -380,17 +380,18 @@ def release(rid:int,user=Depends(actor),db=Depends(database)):
     staff(user);r=db.get(Report,rid)
     if not r:raise HTTPException(404,'Report not found')
     student_guard(db,user,r.student_id);r.released=1;audit(db,user,'REPORT_RELEASED','progress_reports',rid);db.commit();return ok(public(r,('summary',)))
-@app.get('/api/reports/{rid}/download',response_class=HTMLResponse)
+@app.get('/api/reports/{rid}/download',response_class=Response)
 def report_download(rid:int,user=Depends(actor),db=Depends(database)):
     r=db.get(Report,rid)
     if not r:raise HTTPException(404,'Report not found')
     student_guard(db,user,r.student_id)
     if user.role in ('parent','student') and not r.released:raise HTTPException(403,'Report is not released')
-    d=json.loads(r.summary);esc=lambda v:html.escape(str(v))
-    rows=''.join('<tr>'+''.join(f'<td>{esc(s[k])}</td>' for k in ['subject','score','previous','delta','attendance'])+'</tr>' for s in d['subjects'])
-    body=f'<h1>Student progress report</h1><p>{esc(d["student"]["name"])} · {esc(d["student"]["class_name"])} · {esc(d["term"]["name"])}</p><p>Version {r.version} · {esc(r.generated_at)} · {"Released" if r.released else "Draft"}</p><h2>Measured academic indicators</h2><pre>{esc(json.dumps(d["indicators"],indent=2))}</pre><table><tr><th>Subject</th><th>Score</th><th>Previous</th><th>Delta</th><th>Attendance</th></tr>{rows}</table><h2>Support history</h2><pre>{esc(json.dumps(d["support"],indent=2))}</pre><h2>Assignments and submissions</h2><pre>{esc(json.dumps({"assignments":d["assignments"],"submissions":d["submissions"]},indent=2))}</pre><h2>Teacher comments</h2><p>{esc(r.comments)}</p><h2>Follow-up actions</h2><p>{esc(r.follow_up)}</p><p>{esc(d["note"])}</p>'
+    from .report_pdf import render_report_pdf
+    content=render_report_pdf(json.loads(r.summary),r)
     audit(db,user,'REPORT_DOWNLOADED','progress_reports',rid);db.commit()
-    return HTMLResponse('<!doctype html><meta charset="utf-8"><title>Student report</title><style>body{max-width:900px;margin:40px auto;font:16px system-ui;padding:20px;color:#172033}td,th{padding:10px;border-bottom:1px solid #ddd}pre{white-space:pre-wrap}h2{margin-top:35px}@media print{body{margin:0;font-size:11px}}</style>'+body)
+    return Response(content,media_type='application/pdf',headers={
+        'Content-Disposition':f'attachment; filename="student-progress-report-{rid}.pdf"',
+        'Cache-Control':'private, no-store'})
 
 TEMPLATES={'progress_report':'A progress report is available in your authorized school portal. Please sign in to review it.', 'extra_class':'An academic support session has been assigned. Please sign in to the school portal for the subject, date, time and location.', 'assignment':'A learning assignment is available. Please sign in to the school portal for instructions and the deadline.', 'follow_up':'Your advisor has requested a follow-up. Please sign in to the school portal or contact the school.'}
 @app.post('/api/students/{sid}/notifications')

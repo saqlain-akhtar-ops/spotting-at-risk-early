@@ -131,7 +131,16 @@ def test_reports_completeness_release_and_scope(client):
     login(client,'parent@example.test');assert client.get(f'/api/reports/{rid}/download').status_code==403
     assert client.get('/api/students/1/progress-report').status_code==404
     login(client,'teacher.a@example.test');assert client.post(f'/api/reports/{rid}/release').status_code==200
-    login(client,'parent@example.test');assert 'Progress observed' in client.get(f'/api/reports/{rid}/download').text
+    login(client,'parent@example.test');response=client.get(f'/api/reports/{rid}/download')
+    assert response.headers['content-type']=='application/pdf'
+    assert 'attachment;' in response.headers['content-disposition']
+    assert response.content.startswith(b'%PDF-')
+    from io import BytesIO
+    from pypdf import PdfReader
+    assert 'Progress observed' in ''.join(page.extract_text() for page in PdfReader(BytesIO(response.content)).pages)
+    login(client,'teacher.b@example.test')
+    assert client.get(f'/api/reports/{rid}/download').status_code==403
+    login(client,'parent@example.test')
     assert data(client.get('/api/students/1/progress-report'))['released']==1
     login(client,'admin@example.test')
     assert client.post('/api/students/405/progress-report',json={'term_id':1}).status_code==422
