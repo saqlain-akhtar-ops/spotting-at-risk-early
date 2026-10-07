@@ -88,11 +88,29 @@ async function loadSupport(){
   const rows=await api('/extra-classes');window.supportRows=rows;
   $('#support-table').innerHTML=table(['Session','Subject','When (India)','Room','State','Students','Action'],rows.map(r=>[escapeHtml(r.topic),escapeHtml(r.subject),escapeHtml(r.date+' '+r.start_time+'–'+r.end_time),escapeHtml(r.room),r.state,r.students.length,staff()?`<button class="btn secondary" data-support="${r.id}">Manage</button>`:'Read only']));
 }
+let supportManageVersion=0;
 async function manageSupport(id){
-  const r=window.supportRows.find(x=>x.id===Number(id));$('#support-manage').hidden=false;$('#enroll-form [name=extra_class_id]').value=r.id;
-  const options=await api('/students?class_id='+r.class_id);$('#enroll-form [name=student_ids]').innerHTML=option(options,'id','name');
+  const r=window.supportRows?.find(x=>x.id===Number(id));
+  if(!r)throw Error('This class is no longer available. Refresh the class list.');
+  const version=++supportManageVersion,panel=$('#support-manage');
+  panel.hidden=false;
+  panel.querySelector('h2').textContent='Manage class — '+r.topic;
+  $('#attendance-form').hidden=true;
+  $('#enroll-form').hidden=true;$('#state-form').hidden=true;
+  $('#attendance-list').textContent='Loading students…';
+  panel.scrollIntoView({behavior:'smooth',block:'start'});
+  let options;
+  try{options=await api('/students?class_id='+r.class_id)}catch(e){
+    if(version===supportManageVersion)$('#attendance-list').textContent=e.message;
+    throw e;
+  }
+  if(version!==supportManageVersion)return;
+  $('#enroll-form [name=extra_class_id]').value=r.id;
+  $('#enroll-form [name=student_ids]').innerHTML=option(options,'id','name');
+  $('#enroll-form').hidden=false;$('#state-form').hidden=false;
   $('#attendance-list').innerHTML=table(['Student','Attendance','Outcome','Action'],r.students.map(e=>[escapeHtml(options.find(s=>s.id===e.student_id)?.name),e.attendance,escapeHtml(e.outcome),`<button class="btn secondary" data-attendance="${r.id},${e.student_id}">Record</button>`]));
   $('#state-form [name=extra_class_id]').value=r.id;
+  $('#state-form [name=state]').value=r.state;
 }
 async function loadAssignments(){
   const [as,subs]=await Promise.all([api('/assignments'),api('/submissions')]);
