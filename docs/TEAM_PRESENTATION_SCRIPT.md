@@ -74,17 +74,52 @@ CLOSE: detect → explain → support → review progress
 
 This is the presentation sequence, not a claim that the app forces every user through every page. The student chosen for the risk story is Student 005; the student/parent demo accounts are linked to Student 001, so avoid switching to those accounts during this story.
 
+## Website section guide — features and what to say
+
+Use this as a quick reference during the demonstration. Available actions depend on the signed-in role; do not promise that every account can edit every screen. Keep the main demonstration focused on Overview → At-Risk Triage → Student 360 → Extra Classes, and briefly explain the remaining sections.
+
+| Section | Main features and purpose | Brief explanation to the panel |
+|---|---|---|
+| Login / session | Role-based access for administrators, teachers, students and parents; authenticated session and permitted data scope. | “Signing in determines which student records and actions this person is allowed to access.” |
+| Overview | Student count, average score, attendance, risk and support summaries; term trends, status breakdown, score-versus-attendance visuals and class comparisons; filters and selectable visual elements. | “This gives the teacher a quick picture of academic performance and helps narrow the review to a class, term, subject or status.” |
+| At-Risk Triage | Review queue for At Risk and Watch students, evidence behind the flag and links to individual profiles. | “We turn a warning into a reviewable student record, so the teacher can investigate the reason.” |
+| Slow Learner Support | Identifies the defined sustained low-progress pattern and supports targeted follow-up. | “This category highlights repeated limited improvement for teacher review; it is a prototype support label, not a diagnosis.” |
+| Top Performers | Highlights students meeting the score-percentile and attendance rules. | “The system also recognizes strong performance, so the academic picture includes achievement as well as support needs.” |
+| Student 360 | Search permitted students; view scores, attendance, term changes, subject evidence and support history; authorized record updates, guardian contacts and draft report creation. | “We bring the student's evidence and follow-up into one profile before choosing an action.” |
+| Extra Classes | Schedule subject, teacher, class, date, start/end time, room and topic; Manage opens enrollment, attendance and session-state controls. | “The teacher can arrange a specific support session, enroll students and record participation.” |
+| Assignments | Create assignments with instructions and deadlines; submit permitted file types; review work and record feedback or a resubmission request. | “Support continues through practice and feedback, with a record of submitted work and review.” |
+| Progress Reports | Preserve an academic snapshot and support history; draft, review and release workflow; students and guardians see released reports. | “We document progress and next steps so follow-up does not depend on memory.” |
+| Parent communications | Guardian contacts and consent, approved notification templates and communication previews. Hosted demo uses preview mode. | “We prepare parent communication linked to support and progress; this demonstration does not send live email.” |
+| Project & Data Quality | Implementation information; administrator controls for validated Power BI exports, data-quality checks and audit inspection. | “This is the bridge from operational records to reporting sources, with checks and traceability.” |
+
+### Where Power BI is incorporated
+
+**The current incorporation is in the reporting pipeline and source package.** Website interactions use the REST backend and relational database; website charts are rendered in React. There is no verified embedded Power BI report on these pages.
+
+1. **Source data:** The backend validates academic and operational records and prepares ten analytical CSV tables. Authorized administrators can use **Project & Data Quality → Export validated Power BI data**.
+2. **Connection layer:** Supplied Power Query M imports and authenticated analytical REST feeds provide data sources for a Power BI model. Import refresh updates the model when a refresh runs; it is not a streaming connection.
+3. **Model layer:** Supplied relationship/model drafts organize dimensions and facts into a star schema for student, class, subject and term analysis.
+4. **Calculation layer:** The package includes 34 DAX definitions for reporting measures and academic summaries. Their native Power BI execution still needs validation.
+5. **Access and appearance:** Supplied RLS expressions describe intended report data restrictions, and a theme supports consistent appearance. Website permissions are enforced separately by the backend; native Power BI RLS has not been validated.
+6. **Planned report delivery:** The sources support a Power BI dashboard with risk counts, top performers, average scores, attendance, term trends, status breakdowns and slicers. A completed PBIX, published Service report, scheduled Service refresh and embedding are pending.
+
+**Short spoken explanation:**
+
+“Power BI is our analytical reporting layer. We incorporated it by preparing validated exports, Power Query connections, a star-schema model draft, DAX definitions and RLS expressions. Our website handles the day-to-day actions such as reviewing a student and managing extra classes. Its interactive charts are React visuals. The native Power BI report still needs validation and publication, so we present the delivered reporting sources accurately.”
+
+**Operator:** Show the Project & Data Quality section and, if available locally, the CSV, Power Query and DAX source files. Use prepared exports for the panel demonstration; avoid exposing credentials or projecting private configuration files.
+
 ## 3. Full script — Member 1: purpose and problem
 
 **Operator:** Start with login visible, credentials ready privately. Do not project the credential file. Use the direct production link listed in section 8 if the main domain fails.
 
 **Speak:**
 
-“Good morning respected panel members. We are Team BlackCats, and our
-instead iif waiting until a student fails our syste  helps a faculty t o idetify warinign sign earlt to take actions 
+“Good morning respected panel members. We are Team BlackCats, and our project is **Spotting the At-Risk Early**. Instead of waiting until a student fails, our system helps faculty identify warning signs early and arrange appropriate support.
 
+“Before we begin, let me introduce our five members. I am [Member 1 name], and I will introduce the problem and our project purpose. [Member 2 name] will explain the dashboard, interactive visuals and early-warning rules. [Member 3 name] will demonstrate Student 360 and the extra-class support workflow. [Member 4 name] will explain our backend, database and Power BI reporting pipeline. Finally, [Member 5 name] will cover security, validation, our distinguishing features and the conclusion.
 
-project is **Spotting the At-Risk Early**.
+“Together, we will follow one student from a warning signal to a recorded support action.”
 
 “Let me start with a simple situation. A student attends school regularly, but their marks are falling across terms. Another student’s marks stay in the same range even after repeated teaching. A third student may need attention because falling performance is accompanied by low attendance. These students need different responses, and a single final exam result does not explain their full situation.
 
