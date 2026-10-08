@@ -127,6 +127,13 @@ def require_lookup(db, model, key):
     if not db.get(model, key): raise HTTPException(422, f'Invalid {model.__tablename__} reference')
 
 login_attempts = defaultdict(list)
+def issue_session(db,user,response,method='password'):
+    token=secrets.token_urlsafe(32);csrf=secrets.token_urlsafe(24)
+    db.add(LoginSession(token_hash=hashlib.sha256(token.encode()).hexdigest(),user_id=user.id,csrf=csrf,expires=time.time()+28800))
+    audit(db,user,'LOGIN','users',user.id,{'method':method});db.commit()
+    response.set_cookie('session',token,httponly=True,samesite='strict',secure=settings.cookie_secure,max_age=28800,path='/')
+    return {'user':public(user,('password_hash',)), 'csrf_token':csrf}
+
 @app.post('/api/auth/login')
 def login(body: LoginInput, request:Request, response:Response, db=Depends(database)):
     key = request.client.host if request.client else 'local'
@@ -141,11 +148,8 @@ def login(body: LoginInput, request:Request, response:Response, db=Depends(datab
         login_attempts[key].append(time.time())
         audit(db,None,'LOGIN_FAILED','users','unknown'); db.commit()
         raise HTTPException(401, 'Invalid email or password')
-    token = secrets.token_urlsafe(32); csrf = secrets.token_urlsafe(24)
-    db.add(LoginSession(token_hash=hashlib.sha256(token.encode()).hexdigest(),user_id=user.id,csrf=csrf,expires=time.time()+28800))
-    audit(db,user,'LOGIN','users',user.id); db.commit()
-    response.set_cookie('session',token,httponly=True,samesite='strict',secure=settings.cookie_secure,max_age=28800,path='/')
-    return ok({'user':public(user,('password_hash',)), 'csrf_token':csrf})
+    return ok(issue_session(db,user,response))
+
 @app.get('/api/auth/me')
 def me(request:Request, user=Depends(actor)):
     return ok({'user':public(user,('password_hash',)), 'csrf_token':request.state.auth_session.csrf})
@@ -231,6 +235,12 @@ def extras(user=Depends(actor),db=Depends(database)):
         if user.role=='admin' or enrollments or (user.role=='teacher' and db.get(SchoolClass,e.class_id).advisor_id==user.id):
             out.append({**public(e),'subject':db.get(Subject,e.subject_id).name,'students':[public(r) for r in enrollments]})
     return ok(out)
+@app.get('/api/rooms/availability')
+def check_room(date:str,start_time:str,end_time:str,room:str,user=Depends(actor),db=Depends(database)):
+    staff(user)
+    from .room_availability import room_availability
+    return ok(room_availability(db,date,start_time,end_time,room))
+
 @app.post('/api/extra-classes')
 def add_extra(body:ExtraInput,user=Depends(actor),db=Depends(database)):
     staff(user);cls=class_guard(db,user,body.class_id);require_lookup(db,Subject,body.subject_id)
@@ -238,8 +248,9 @@ def add_extra(body:ExtraInput,user=Depends(actor),db=Depends(database)):
     if not teacher or teacher.role!='teacher' or teacher.id!=cls.advisor_id:raise HTTPException(422,'Choose the class advisor as teacher')
     if body.end_time<=body.start_time:raise HTTPException(422,'End time must be after start time')
     if body.date<datetime.now().date().isoformat():raise HTTPException(422,'Schedule a future or current date')
-    overlaps=list(db.scalars(select(ExtraClass).where(ExtraClass.date==body.date,ExtraClass.state!='CANCELLED',ExtraClass.start_time<body.end_time,ExtraClass.end_time>body.start_time)))
-    if any(x.teacher_id==body.teacher_id or (body.room and x.room==body.room) for x in overlaps):raise HTTPException(409,'Teacher or room already booked')
+    from .room_availability import overlapping_sessions, normalize_room
+    overlaps=overlapping_sessions(db,body.date,body.start_time,body.end_time)
+    if any(x.teacher_id==body.teacher_id or (normalize_room(body.room) and normalize_room(x.room)==normalize_room(body.room)) for x in overlaps):raise HTTPException(409,'Teacher or room already booked')
     e=ExtraClass(**body.model_dump(),created_by=user.id);db.add(e);db.flush();audit(db,user,'CLASS_CREATED','extra_classes',e.id);db.commit();return ok(public(e))
 @app.post('/api/extra-classes/{eid}/students')
 def enroll(eid:int,body:EnrollmentInput,user=Depends(actor),db=Depends(database)):
@@ -380,6 +391,20 @@ def release(rid:int,user=Depends(actor),db=Depends(database)):
     staff(user);r=db.get(Report,rid)
     if not r:raise HTTPException(404,'Report not found')
     student_guard(db,user,r.student_id);r.released=1;audit(db,user,'REPORT_RELEASED','progress_reports',rid);db.commit();return ok(public(r,('summary',)))
+@app.get('/api/reports/{rid}/excel',response_class=Response)
+def report_excel(rid:int,user=Depends(actor),db=Depends(database)):
+    staff(user)
+    r=db.get(Report,rid)
+    if not r:raise HTTPException(404,'Report not found')
+    student_guard(db,user,r.student_id)
+    from .report_excel import render_report_excel
+    guardians=[public(p) for p in db.scalars(select(Parent).where(Parent.student_id==r.student_id))]
+    content=render_report_excel(json.loads(r.summary),r,guardians)
+    audit(db,user,'REPORT_EXCEL_DOWNLOADED','progress_reports',rid);db.commit()
+    return Response(content,media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',headers={
+        'Content-Disposition':f'attachment; filename="student-progress-report-{rid}.xlsx"',
+        'Cache-Control':'private, no-store'})
+
 @app.get('/api/reports/{rid}/download',response_class=Response)
 def report_download(rid:int,user=Depends(actor),db=Depends(database)):
     r=db.get(Report,rid)
@@ -485,3 +510,6 @@ def ready(db=Depends(database)):
 app.mount('/assets',StaticFiles(directory=ROOT/'frontend'),name='assets')
 @app.get('/',include_in_schema=False)
 def index():return FileResponse(ROOT/'frontend'/'index.html')
+
+from .microsoft_login import install_microsoft_login
+install_microsoft_login(app,database,issue_session)

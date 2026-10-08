@@ -59,6 +59,141 @@ def login(client,email):
 def data(r):
     assert r.status_code==200,r.text
     return r.json()['data']
+
+def test_room_availability_normalizes_names_and_matches_schedule_rules(client):
+    login(client,'teacher.a@example.test')
+    payload={'subject_id':1,'teacher_id':2,'class_id':1,'date':'2031-10-12',
+             'start_time':'16:00','end_time':'17:00','room':'Lab 9','topic':'Availability test'}
+    first=data(client.post('/api/extra-classes',json=payload))
+    params={'date':payload['date'],'start_time':'16:30','end_time':'17:30','room':'  lAB   9  '}
+    result=data(client.get('/api/rooms/availability',params=params))
+    assert not result['available'] and result['busy_slots']==[{'start_time':'16:00','end_time':'17:00'}]
+    assert 'teacher_id' not in result and 'topic' not in result
+    params.update(start_time='17:00',end_time='18:00')
+    assert data(client.get('/api/rooms/availability',params=params))['available']
+    # Another class/teacher cannot bypass the room check with case or spaces.
+    login(client,'teacher.b@example.test')
+    other={**payload,'teacher_id':3,'class_id':4,'room':' lab   9 '}
+    assert client.post('/api/extra-classes',json=other).status_code==409
+    login(client,'teacher.a@example.test')
+    assert client.put(f"/api/extra-classes/{first['id']}",json={'state':'CANCELLED'}).status_code==200
+    params.update(start_time='16:30',end_time='17:30')
+    assert data(client.get('/api/rooms/availability',params=params))['available']
+    params['end_time']='15:00'
+    assert client.get('/api/rooms/availability',params=params).status_code==422
+    login(client,'student@example.test')
+    assert client.get('/api/rooms/availability',params=params).status_code==403
+
+def test_excel_report_is_editable_scoped_and_lookup_ready(client):
+    from io import BytesIO
+    from openpyxl import load_workbook
+    login(client,'teacher.a@example.test')
+    report=data(client.post('/api/students/5/progress-report',json={
+        'term_id':4,'comments':'=HYPERLINK("https://invalid.example","unsafe")',
+        'follow_up':'Review next assessment'}))
+    rid=report['id']
+    response=client.get(f'/api/reports/{rid}/excel')
+    assert response.status_code==200 and response.content.startswith(b'PK')
+    assert response.headers['content-type'].endswith('spreadsheetml.sheet')
+    assert '.xlsx' in response.headers['content-disposition']
+    wb=load_workbook(BytesIO(response.content))
+    assert wb.sheetnames==['Report','Student Lookup','Guardian Lookup','Academic Records','Support','Read Me']
+    assert wb['Report']['B5'].data_type=='f' and 'VLOOKUP' in wb['Report']['B5'].value
+    assert wb['Report']['B23'].data_type=='s'  # user comments cannot execute as formulas
+    assert not wb['Report'].protection.sheet
+    assert wb['Student Lookup'].max_row==2 and wb['Student Lookup']['A2'].value==5
+    assert wb['Guardian Lookup']['C2'].value=='guardian005@example.test'
+    assert wb['Academic Records'].max_row==4
+    assert all('password' not in str(cell.value).lower() for sheet in wb for row in sheet for cell in row if sheet.title!='Read Me')
+    login(client,'teacher.b@example.test')
+    assert client.get(f'/api/reports/{rid}/excel').status_code==403
+    login(client,'student@example.test')
+    assert client.get(f'/api/reports/{rid}/excel').status_code==403
+
+@pytest.fixture
+def entra_config(monkeypatch):
+    from backend import microsoft_login as ms
+    values={'ENTRA_TENANT_ID':'11111111-1111-1111-1111-111111111111',
+            'ENTRA_CLIENT_ID':'22222222-2222-2222-2222-222222222222',
+            'ENTRA_CLIENT_SECRET':'Unit-test-placeholder-not-a-real-secret',
+            'ENTRA_REDIRECT_URI':'https://school.example/api/auth/microsoft/callback',
+            'ENTRA_STATE_SECRET':'Unit-test-state-key-with-more-than-thirty-two-characters',
+            'ENTRA_USER_MAP':'{"33333333-3333-3333-3333-333333333333":2}'}
+    for key,value in values.items():monkeypatch.setenv(key,value)
+    return ms.configuration()
+
+def test_microsoft_login_disabled_without_registration(client,monkeypatch):
+    for name in ['TENANT_ID','CLIENT_ID','CLIENT_SECRET','REDIRECT_URI','STATE_SECRET','USER_MAP']:
+        monkeypatch.delenv('ENTRA_'+name,raising=False)
+    assert not data(client.get('/api/auth/options'))['microsoft_enabled']
+    assert client.get('https://testserver/api/auth/microsoft/start').status_code==503
+
+def test_microsoft_authorization_start_uses_encrypted_state_nonce_and_pkce(client,entra_config):
+    from urllib.parse import urlsplit,parse_qs
+    from backend import microsoft_login as ms
+    response=client.get('https://testserver/api/auth/microsoft/start',follow_redirects=False)
+    assert response.status_code==307
+    params=parse_qs(urlsplit(response.headers['location']).query)
+    assert params['code_challenge_method']==['S256']
+    assert params['scope']==['openid profile']
+    assert 'client_secret' not in params
+    assert 'HttpOnly' in response.headers['set-cookie'] and 'Secure' in response.headers['set-cookie']
+    cookie=client.cookies.get('entra_flow')
+    flow=ms.read_flow(entra_config,cookie,params['state'][0])
+    assert flow['nonce']==params['nonce'][0] and flow['verifier'] not in cookie
+    with pytest.raises(Exception):ms.read_flow(entra_config,cookie,'wrong-state')
+
+def test_microsoft_token_validation_requires_signature_audience_issuer_and_nonce(entra_config,monkeypatch):
+    from backend import microsoft_login as ms
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from types import SimpleNamespace
+    import jwt,time
+    key=rsa.generate_private_key(public_exponent=65537,key_size=2048)
+    provider=SimpleNamespace(get_signing_key_from_jwt=lambda token:SimpleNamespace(key=key.public_key()))
+    monkeypatch.setattr(ms,'signing_keys',lambda tenant:provider)
+    claims={'iss':f"https://login.microsoftonline.com/{entra_config['tenant']}/v2.0",
+            'aud':entra_config['client'],'exp':int(time.time())+300,'iat':int(time.time()),
+            'nonce':'expected','tid':entra_config['tenant'],'oid':next(iter(entra_config['users']))}
+    assert ms.validate_identity(entra_config,jwt.encode(claims,key,algorithm='RS256'),'expected')==claims['oid']
+    for changes in [{'aud':'wrong'},{'iss':'https://attacker.example'},{'nonce':'wrong'},{'exp':1},
+                    {'tid':'44444444-4444-4444-4444-444444444444'}]:
+        with pytest.raises(Exception):ms.validate_identity(entra_config,jwt.encode({**claims,**changes},key,algorithm='RS256'),'expected')
+    forged=rsa.generate_private_key(public_exponent=65537,key_size=2048)
+    with pytest.raises(Exception):ms.validate_identity(entra_config,jwt.encode(claims,forged,algorithm='RS256'),'expected')
+
+def test_microsoft_callback_creates_existing_scoped_session_only(client,entra_config,monkeypatch):
+    from backend import microsoft_login as ms
+    from urllib.parse import urlsplit,parse_qs
+    client.cookies.clear();client.headers.pop('X-CSRF-Token',None)
+    start=client.get('https://testserver/api/auth/microsoft/start',follow_redirects=False)
+    state=parse_qs(urlsplit(start.headers['location']).query)['state'][0]
+    monkeypatch.setattr(ms,'exchange_code',lambda config,code,verifier:'test-token')
+    monkeypatch.setattr(ms,'validate_identity',lambda config,token,nonce:next(iter(config['users'])))
+    callback=client.get('https://testserver/api/auth/microsoft/callback',params={'state':state,'code':'test-code'},follow_redirects=False)
+    assert callback.status_code==303 and callback.headers['location']=='/'
+    me=data(client.get('/api/auth/me'))
+    assert me['user']['id']==2 and me['user']['role']=='teacher'
+    assert len(data(client.get('/api/students')))==240
+    assert client.post('/api/auth/logout').status_code==403
+    client.headers['X-CSRF-Token']=me['csrf_token']
+    assert client.post('/api/auth/logout').status_code==200
+    # Matching mutable email/name claims cannot authorize an unmapped object ID.
+    start=client.get('https://testserver/api/auth/microsoft/start',follow_redirects=False)
+    state=parse_qs(urlsplit(start.headers['location']).query)['state'][0]
+    monkeypatch.setattr(ms,'validate_identity',lambda config,token,nonce:'44444444-4444-4444-4444-444444444444')
+    result=client.get('https://testserver/api/auth/microsoft/callback',params={'state':state,'code':'test-code'},follow_redirects=False)
+    assert result.headers['location']=='/?microsoft_error=not_authorized'
+    assert client.get('/api/auth/me').status_code==401
+
+def test_microsoft_callback_rejects_state_before_provider_exchange(client,entra_config,monkeypatch):
+    from backend import microsoft_login as ms
+    client.cookies.clear()
+    client.get('https://testserver/api/auth/microsoft/start',follow_redirects=False)
+    def no_exchange(*args):raise AssertionError('Provider must not be called')
+    monkeypatch.setattr(ms,'exchange_code',no_exchange)
+    response=client.get('https://testserver/api/auth/microsoft/callback',params={'state':'wrong','code':'test-code'},follow_redirects=False)
+    assert response.headers['location']=='/?microsoft_error=sign_in_failed'
+    assert client.get('/api/auth/me').status_code==401
 def test_login_csrf_logout(client):
     assert client.post('/api/auth/login',json={'email':'unknown@example.test','password':'no'}).status_code==401
     login(client,'admin@example.test')

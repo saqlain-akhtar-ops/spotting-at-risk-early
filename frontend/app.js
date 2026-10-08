@@ -88,6 +88,23 @@ async function loadSupport(){
   const rows=await api('/extra-classes');window.supportRows=rows;
   $('#support-table').innerHTML=table(['Session','Subject','When (India)','Room','State','Students','Action'],rows.map(r=>[escapeHtml(r.topic),escapeHtml(r.subject),escapeHtml(r.date+' '+r.start_time+'–'+r.end_time),escapeHtml(r.room),r.state,r.students.length,staff()?`<button class="btn secondary" data-support="${r.id}">Manage</button>`:'Read only']));
 }
+let roomCheckVersion=0;
+async function checkRoomAvailability(){
+  const version=++roomCheckVersion,button=$('#check-room'),message=$('#room-availability');
+  const form=$('#extra-form'),params=new URLSearchParams();
+  for(const key of ['date','start_time','end_time','room']){
+    const value=form.elements[key].value.trim();
+    if(!value){message.textContent='Enter a date, start/end time and room first.';return}
+    params.set(key,value);
+  }
+  button.disabled=true;message.textContent='Checking room availability…';
+  try{
+    const result=await api('/rooms/availability?'+params);
+    if(version!==roomCheckVersion)return;
+    message.textContent=result.available?`${result.room} is available for ${result.start_time}–${result.end_time}. Rechecked when you schedule.`:`${result.room} is booked during ${result.busy_slots.map(x=>x.start_time+'–'+x.end_time).join(', ')}. Choose another room or time.`;
+  }catch(e){if(version===roomCheckVersion)message.textContent=e.message}
+  finally{button.disabled=false}
+}
 let supportManageVersion=0;
 async function manageSupport(id){
   const r=window.supportRows?.find(x=>x.id===Number(id));
@@ -123,7 +140,7 @@ async function loadReports(){
   $('#report-table').innerHTML=reportTable(rs);
   $('#notification-table').innerHTML=table(['ID','Student','Template','Message','Delivery','Action'],ns.map(n=>[n.id,n.student_id,escapeHtml(n.template),escapeHtml(n.message),n.status,staff()&&n.status==='PREVIEW'?`<button class="btn secondary" data-send="${n.id}">Send configured email</button>`:'']));
 }
-function reportTable(rs){return table(['Student','Term','Version','Generated','State','Action'],rs.map(r=>[r.student_id,r.term_id,r.version,escapeHtml(new Date(r.generated_at).toLocaleString()),r.released?'Released':'Draft',`<a class="btn secondary" target="_blank" rel="noopener" href="/api/reports/${r.id}/download">Download PDF</a> `+(staff()&&!r.released?`<button class="btn secondary" data-release="${r.id}">Release</button>`:'')]))}
+function reportTable(rs){return table(['Student','Term','Version','Generated','State','Action'],rs.map(r=>[r.student_id,r.term_id,r.version,escapeHtml(new Date(r.generated_at).toLocaleString()),r.released?'Released':'Draft',`<a class="btn secondary" target="_blank" rel="noopener" href="/api/reports/${r.id}/download">Download PDF</a> `+(staff()?`<a class="btn secondary" href="/api/reports/${r.id}/excel">Download Excel</a> `:'')+(staff()&&!r.released?`<button class="btn secondary" data-release="${r.id}">Release</button>`:'')]))}
 async function loadStudentReports(){const rs=await api('/reports');$('#student-reports').innerHTML=reportTable(rs.filter(r=>r.student_id===selected))}
 function formData(form,numbers=[]){const d=Object.fromEntries(new FormData(form));numbers.forEach(k=>d[k]=Number(d[k]));return d}
 function bindForm(id,handler){$(id).addEventListener('submit',async e=>{e.preventDefault();const b=e.target.querySelector('button[type=submit]');if(b)b.disabled=true;try{await handler(e.target);toast('Saved successfully')}catch(err){error(err)}finally{if(b)b.disabled=false}})}
@@ -150,6 +167,8 @@ document.addEventListener('click',async e=>{const b=e.target.closest('button');i
   if(b.dataset.send){await api(`/notifications/${b.dataset.send}/send`,'POST');await loadReports()}
   if(b.dataset.release){await api(`/reports/${b.dataset.release}/release`,'POST');await loadReports();if(selected)await loadStudentReports()}
 }catch(err){error(err)}});
+$('#check-room').onclick=checkRoomAvailability;
+$('#extra-form').addEventListener('input',()=>{roomCheckVersion++;$('#room-availability').textContent='Date, time or room changed. Check availability again.'});
 $('#logout').onclick=async()=>{try{await api('/auth/logout','POST');location.reload()}catch(e){error(e)}};
 $('#refresh').onclick=()=>refresh().catch(error);
 $('#filters').onchange=()=>refresh().catch(error);
@@ -162,3 +181,11 @@ $('#theme').onclick=()=>document.documentElement.dataset.theme=document.document
 init().catch(e=>{if(e.message!=='Please sign in')error(e)});
 
 window.addEventListener('chart-term',e=>{$('#filters [name=term_id]').value=e.detail;refresh().catch(error)});
+
+async function configureMicrosoftLogin(){
+  const options=await api('/auth/options');
+  $('#microsoft-login').hidden=!options.microsoft_enabled;
+  const reason=new URLSearchParams(location.search).get('microsoft_error');
+  if(reason&&!currentUser)error(new Error(reason==='not_authorized'?'Your Microsoft account is not linked to an authorized project user. Contact the administrator.':'Microsoft sign-in was not completed. Try again or use your project login.'));
+}
+configureMicrosoftLogin().catch(()=>{});
